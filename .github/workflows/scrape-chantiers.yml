@@ -1,0 +1,59 @@
+name: Scrape chantiers PDF
+
+on:
+  schedule:
+    # Tous les 4 jours à 06:00 UTC
+    - cron: "0 6 */4 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Restore scrape cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/pdfs
+            data/metadata.json
+          key: scrape-chantiers-v1-${{ hashFiles('data/metadata.json') }}
+          restore-keys: |
+            scrape-chantiers-v1-
+
+      - name: Install dependencies
+        run: pip install -r requirements-scraping.txt
+
+      - name: Run scraper
+        run: python scripts/run_scraper.py -v
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: liste-chantiers-pdf
+          path: data/pdfs/liste_chantiers_latest.pdf
+          retention-days: 90
+          if-no-files-found: ignore
+
+      - name: Commit metadata if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/metadata.json
+          if git diff --staged --quiet; then
+            echo "metadata.json inchangé, pas de commit."
+          else
+            git commit -m "chore(scraping): mise à jour metadata après scrape"
+            git push
+          fi

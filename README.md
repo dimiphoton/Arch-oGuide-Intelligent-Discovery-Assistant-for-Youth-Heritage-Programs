@@ -29,6 +29,31 @@ The ministry for Culture has a useful pdf for who seeks to make children discove
 ## Data Source
 The data is sourced from the French Ministry of Culture: [La liste fouiller en bénévole ou visiter un chantier archéologique](https://www.culture.gouv.fr/thematiques/archeologie/ressources-documentaires/introduction-a-l-archeologie/la-liste-fouiller-en-benevole-ou-visiter-un-chantier-archeologique)
 
+## Scraping
+
+Le module `scrapping/` télécharge automatiquement le PDF officiel depuis culture.gouv.fr, avec détection de changements (date de parution, URL, ETag, hash SHA-256) pour éviter les retéléchargements inutiles.
+
+### Utilisation locale
+
+```bash
+pip install -r requirements-scraping.txt
+python scripts/run_scraper.py              # scrape normal
+python scripts/run_scraper.py --dry-run      # simulation sans téléchargement
+python scripts/run_scraper.py --force      # force le téléchargement
+```
+
+Le PDF courant est enregistré dans `data/pdfs/liste_chantiers_latest.pdf`. L'état du scrape est tracé dans `data/metadata.json`.
+
+### Automatisation (GitHub Actions)
+
+Le workflow [Scrape chantiers PDF](.github/workflows/scrape-chantiers.yml) s'exécute tous les 4 jours (06:00 UTC) et peut aussi être lancé manuellement (`workflow_dispatch`). En cas de nouvelle version, il met à jour `metadata.json` et publie le PDF en artifact GitHub (rétention 90 jours).
+
+### Tests
+
+```bash
+pytest tests/
+```
+
 ## Project Scoring (Self-Assessment)
 | Category | Status |
 | :--- | :--- |
