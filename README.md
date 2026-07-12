@@ -1,0 +1,2 @@
+# Arch-oGuide-Intelligent-Discovery-Assistant-for-Youth-Heritage-Programs
+ArchéoGuide is a RAG application designed to connect young students and families with accessible archaeological excavation opportunities and educational heritage programs. By synthesizing PDF-based schedules and academic curricula into an intuitive conversational interface, the platform provides precise, context-aware information.
