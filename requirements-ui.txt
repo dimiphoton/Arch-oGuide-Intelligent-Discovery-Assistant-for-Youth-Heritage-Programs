@@ -1,0 +1,3 @@
+# Dépendances interface Streamlit (branche ui-streamlit)
+-r requirements.txt
+streamlit==1.41.1

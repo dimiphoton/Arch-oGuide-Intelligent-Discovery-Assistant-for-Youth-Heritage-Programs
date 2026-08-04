@@ -1,0 +1,4 @@
+# Dépendances ingestion PDF (branche ingest)
+-r requirements.txt
+pymupdf==1.25.1
+prefect==3.1.13

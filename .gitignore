@@ -1,5 +1,28 @@
+# Secrets
+.env
+
+# Données locales (PDF téléchargés)
 data/pdfs/*.pdf
+
+# Python
 __pycache__/
-.venv/
 *.pyc
+.venv/
+venv/
 .pytest_cache/
+.ruff_cache/
+
+# IDE
+.idea/
+.vscode/
+
+# Prefect (branche ingest)
+.prefect/
+
+# Évaluations générées localement
+eval/results/*.json
+eval/results/*.csv
+
+# OS
+.DS_Store
+Thumbs.db

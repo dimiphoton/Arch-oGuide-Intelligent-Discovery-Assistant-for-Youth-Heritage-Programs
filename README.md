@@ -1,73 +1,171 @@
-# Arch-oGuide-Intelligent-Discovery-Assistant-for-Youth-Heritage-Programs
-ArchéoGuide is a RAG application designed to connect young students and families with accessible archaeological excavation opportunities and educational heritage programs. By synthesizing PDF-based schedules and academic curricula into an intuitive conversational interface, the platform provides precise, context-aware information.
+# ArchéoGuide — Intelligent Discovery Assistant for Youth Heritage Programs
 
+Application RAG (Retrieval-Augmented Generation) développée dans le cadre du **LLM Zoomcamp**.  
+Elle aide les **jeunes**, **familles** et **enseignants** à trouver des chantiers archéologiques accessibles en France, à partir du document officiel du Ministère de la Culture.
 
-# ArchéoGuide: Intelligent Discovery Assistant for Youth Heritage Programs
-
-ArchéoGuide is an end-to-end RAG (Retrieval-Augmented Generation) application built for the LLM Zoomcamp. It streamlines access to archaeological excavation opportunities for young enthusiasts by transforming unstructured official government documents into an interactive conversational experience.
+---
 
 ## Problem Description
 
-The ministry for Culture has a useful pdf for who seeks to make children discover archeology. I thought It was a good RAG project because:
-- it is lightweight and quite clean
-- it is typical of my AI projects: help people not lose time 
+### Contexte
 
-## Architecture & Features
-- **Retrieval Flow**: Implements a RAG pipeline utilizing a vector database (Elasticsearch/Qdrant) combined with semantic search.
-- **Ingestion Pipeline**: Fully automated ingestion pipeline using Python scripts to parse the official Ministry of Culture source.
-- **Evaluation**: 
-    - **Retrieval**: Comparison between keyword search and vector search (Hybrid Search).
-    - **LLM**: Evaluation of prompt engineering techniques to ensure age-appropriate and accurate responses.
-- **Best Practices**:
-    - Hybrid Search (combining text and vector search).
-    - Document re-ranking.
-    - User query rewriting for improved retrieval.
-- **Monitoring**: Dashboard for tracking queries, latency, and user feedback (thumbs up/down).
-- **Interface**: Streamlit-based web application.
-- **Containerization**: Full stack deployment using `docker-compose`.
+Chaque année, le [Ministère de la Culture](https://www.culture.gouv.fr/thematiques/archeologie/ressources-documentaires/introduction-a-l-archeologie/la-liste-fouiller-en-benevole-ou-visiter-un-chantier-archeologique) publie un **PDF de ~13 Mo** recensant les chantiers archéologiques où l'on peut **fouiller en bénévole** ou **visiter un site** — y compris des programmes adaptés aux **enfants et aux scolaires**.
 
-## Data Source
-The data is sourced from the French Ministry of Culture: [La liste fouiller en bénévole ou visiter un chantier archéologique](https://www.culture.gouv.fr/thematiques/archeologie/ressources-documentaires/introduction-a-l-archeologie/la-liste-fouiller-en-benevole-ou-visiter-un-chantier-archeologique)
+### Problème
+
+| Difficulté | Impact |
+|---|---|
+| Document long et dense (~centaines de pages) | Difficile à parcourir pour un parent ou un enseignant pressé |
+| Informations éparpillées par région, période, type de public | Une simple recherche Ctrl+F ne suffit pas pour des questions en langage naturel |
+| Mise à jour régulière du PDF | Risque d'informations obsolètes si on garde une copie locale |
+| Public cible (jeunes, familles) | Besoin de réponses claires, adaptées et fiables — pas de jargon administratif |
+
+**Exemples de questions auxquelles le PDF doit répondre, mais difficilement sans outil :**
+- *« Quels chantiers acceptent des volontaires de moins de 16 ans en Bretagne cet été ? »*
+- *« Où peut-on visiter un chantier en famille près de Lyon en juillet ? »*
+- *« Quels chantiers proposent une initiation à la préhistoire pour des collégiens ? »*
+
+### Solution : ArchéoGuide
+
+ArchéoGuide transforme ce PDF officiel en **assistant conversationnel** :
+
+1. **Scraping automatisé** — téléchargement et détection de nouvelles versions du PDF
+2. **Ingestion** — découpage, indexation dans une base vectorielle (Qdrant)
+3. **Retrieval hybride** — recherche sémantique + mots-clés, avec re-ranking
+4. **Génération LLM** — réponses en langage naturel, adaptées au public jeune, avec citations des sources
+
+### Pourquoi un RAG (et pas un LLM seul) ?
+
+- Le LLM **seul** inventerait des chantiers inexistants (hallucinations).
+- Le RAG **ancre** chaque réponse dans le PDF officiel : les informations restent **vérifiables** et **à jour**.
+- La recherche vectorielle permet de comprendre l'**intention** derrière une question floue, ce qu'une recherche textuelle classique ne fait pas bien.
+
+---
+
+## Architecture & Roadmap (branches)
+
+| Branche | Contenu | Statut |
+|---|---|---|
+| `scrapping` | Téléchargement automatique du PDF (GitHub Actions quotidien) | ✅ |
+| `docs/foundation` | Structure projet, config, README, deps pinées | 🚧 |
+| `ingest` | Pipeline Prefect : PDF → chunks → Qdrant | ⬜ |
+| `rag-core` | Retrieval vectoriel + LLM, CLI | ⬜ |
+| `eval-retrieval` | Comparaison BM25 / vector / hybrid | ⬜ |
+| `rag-advanced` | Query rewriting + re-ranking | ⬜ |
+| `eval-llm` | Comparaison de prompts | ⬜ |
+| `ui-streamlit` | Interface chat Streamlit | ⬜ |
+| `monitoring` | Feedback utilisateur + dashboard | ⬜ |
+| `docker` | docker-compose complet | ⬜ |
+
+---
+
+## Structure du projet
+
+```
+Arch-oGuide/
+├── app/              # Interface Streamlit (à venir)
+├── rag/              # Config, retrieval, génération
+├── ingest/           # Pipeline d'ingestion PDF
+├── eval/             # Évaluations retrieval & LLM
+├── scrapping/        # Scraper PDF culture.gouv.fr
+├── scripts/          # CLI (scraper, check_setup, ask…)
+├── tests/            # Tests unitaires
+├── data/
+│   ├── pdfs/         # PDF téléchargé (gitignored)
+│   └── metadata.json # État du dernier scrape
+├── docker/           # docker-compose (à venir)
+├── requirements.txt          # Dépendances principales (pinées)
+├── requirements-scraping.txt # Scraping PDF
+├── requirements-ingest.txt   # Ingestion PDF → Qdrant (branche ingest)
+├── requirements-ui.txt       # Streamlit (branche ui-streamlit)
+└── requirements-dev.txt      # Tests & lint
+```
+
+---
+
+## Quick Start
+
+### 1. Cloner et installer
+
+```bash
+git clone https://github.com/dimiphoton/Arch-oGuide-Intelligent-Discovery-Assistant-for-Youth-Heritage-Programs.git
+cd Arch-oGuide-Intelligent-Discovery-Assistant-for-Youth-Heritage-Programs
+python -m venv .venv
+# Windows : .venv\Scripts\activate
+# Linux/Mac : source .venv/bin/activate
+pip install -r requirements-dev.txt
+```
+
+### 2. Configurer l'environnement
+
+```bash
+cp .env.example .env
+# Éditer .env et renseigner OPENAI_API_KEY
+```
+
+### 3. Télécharger le PDF source
+
+```bash
+pip install -r requirements-scraping.txt
+python scripts/run_scraper.py
+```
+
+Le PDF est enregistré dans `data/pdfs/liste_chantiers_latest.pdf`.
+
+### 4. Vérifier l'installation
+
+```bash
+python scripts/check_setup.py
+```
+
+---
 
 ## Scraping
 
 Le module `scrapping/` télécharge automatiquement le PDF officiel depuis culture.gouv.fr, avec détection de changements (date de parution, URL, ETag, hash SHA-256) pour éviter les retéléchargements inutiles.
 
-### Utilisation locale
-
 ```bash
-pip install -r requirements-scraping.txt
 python scripts/run_scraper.py              # scrape normal
-python scripts/run_scraper.py --dry-run      # simulation sans téléchargement
+python scripts/run_scraper.py --dry-run    # simulation sans téléchargement
 python scripts/run_scraper.py --force      # force le téléchargement
 ```
-
-Le PDF courant est enregistré dans `data/pdfs/liste_chantiers_latest.pdf`. L'état du scrape est tracé dans `data/metadata.json`.
 
 ### Automatisation (GitHub Actions)
 
 Le workflow [Scrape chantiers PDF](.github/workflows/scrape-chantiers.yml) s'exécute **tous les jours** à 06:00 UTC et peut aussi être lancé manuellement (`workflow_dispatch`). En cas de nouvelle version, il met à jour `metadata.json` et publie le PDF en artifact GitHub (rétention 90 jours).
 
-### Tests
+---
+
+## Data Source
+
+Document officiel : [La liste — fouiller en bénévole ou visiter un chantier archéologique](https://www.culture.gouv.fr/thematiques/archeologie/ressources-documentaires/introduction-a-l-archeologie/la-liste-fouiller-en-benevole-ou-visiter-un-chantier-archeologique) — Ministère de la Culture, Direction de l'archéologie.
+
+---
+
+## Tests
 
 ```bash
 pytest tests/
 ```
 
+---
+
 ## Project Scoring (Self-Assessment)
+
 | Category | Status |
 | :--- | :--- |
-| Problem Description | 1/2 |
+| Problem Description | 2/2 |
 | Retrieval Flow | 0/2 |
 | Retrieval Evaluation | 0/2 |
 | LLM Evaluation | 0/2 |
 | Interface | 0/2 |
-| Ingestion Pipeline | 0/2 |
+| Ingestion Pipeline | 1/2 (scrape auto ; pipeline RAG à venir) |
 | Monitoring | 0/2 |
 | Containerization | 0/2 |
-| Reproducibility | 0/2 |
+| Reproducibility | 1/2 (instructions + deps pinées ; RAG à venir) |
 | Best Practices | 0/3 |
 | Bonus | 0/2 (Cloud Deployment) |
 
 ---
+
 *Developed for LLM Zoomcamp.*

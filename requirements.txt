@@ -1,0 +1,20 @@
+# Dépendances principales ArchéoGuide (versions pinées)
+# Installation : pip install -r requirements.txt
+
+# Configuration
+python-dotenv==1.0.1
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# RAG — LLM & embeddings (branches rag-core et suivantes)
+openai==1.59.6
+qdrant-client==1.12.2
+
+# Utilitaires
+requests==2.32.3
+tqdm==4.67.1
+
+# Branches suivantes — décommenter ou voir requirements-ingest.txt / requirements-ui.txt
+# pymupdf==1.25.1
+# prefect==3.1.13
+# streamlit==1.41.1
