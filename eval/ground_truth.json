@@ -1,0 +1,102 @@
+[
+  {
+    "id": "q01",
+    "question": "Quels chantiers archéologiques acceptent des bénévoles en Bretagne ?",
+    "expected_keywords": ["Bretagne", "bénévole"]
+  },
+  {
+    "id": "q02",
+    "question": "Où peut-on visiter un chantier archéologique en Normandie ?",
+    "expected_keywords": ["Normandie", "visite"]
+  },
+  {
+    "id": "q03",
+    "question": "Chantiers archéologiques pour les scolaires en Île-de-France",
+    "expected_keywords": ["Île-de-France", "scolaire"]
+  },
+  {
+    "id": "q04",
+    "question": "Fouilles bénévoles en Provence-Alpes-Côte d'Azur",
+    "expected_keywords": ["Provence", "bénévole"]
+  },
+  {
+    "id": "q05",
+    "question": "Chantiers archéologiques en Occitanie ouvert aux volontaires",
+    "expected_keywords": ["Occitanie", "volontaire"]
+  },
+  {
+    "id": "q06",
+    "question": "Visites de sites archéologiques pour les familles en été",
+    "expected_keywords": ["visite", "famille"]
+  },
+  {
+    "id": "q07",
+    "question": "Chantiers de préhistoire accessibles aux amateurs",
+    "expected_keywords": ["préhistoire"]
+  },
+  {
+    "id": "q08",
+    "question": "Fouilles archéologiques en Nouvelle-Aquitaine",
+    "expected_keywords": ["Nouvelle-Aquitaine", "fouille"]
+  },
+  {
+    "id": "q09",
+    "question": "Chantiers romains où participer comme bénévole",
+    "expected_keywords": ["romain", "bénévole"]
+  },
+  {
+    "id": "q10",
+    "question": "Archéologie médiévale chantiers ouverts au public",
+    "expected_keywords": ["médiéval"]
+  },
+  {
+    "id": "q11",
+    "question": "Chantiers archéologiques en Auvergne-Rhône-Alpes",
+    "expected_keywords": ["Auvergne"]
+  },
+  {
+    "id": "q12",
+    "question": "Participation bénévole sur un chantier en été 2026",
+    "expected_keywords": ["2026", "bénévole"]
+  },
+  {
+    "id": "q13",
+    "question": "Sites archéologiques visitables en Pays de la Loire",
+    "expected_keywords": ["Pays de la Loire", "visite"]
+  },
+  {
+    "id": "q14",
+    "question": "Chantiers archéologiques pour les moins de 18 ans",
+    "expected_keywords": ["mineur", "jeune"]
+  },
+  {
+    "id": "q15",
+    "question": "Fouilles en Alsace ouvertes aux bénévoles",
+    "expected_keywords": ["Alsace", "bénévole"]
+  },
+  {
+    "id": "q16",
+    "question": "Chantier archéologique en Bourgogne-Franche-Comté",
+    "expected_keywords": ["Bourgogne"]
+  },
+  {
+    "id": "q17",
+    "question": "Initiation à l'archéologie sur un chantier pédagogique",
+    "expected_keywords": ["pédagog", "initiation"]
+  },
+  {
+    "id": "q18",
+    "question": "Chantiers archéologiques en Corse",
+    "expected_keywords": ["Corse"]
+  },
+  {
+    "id": "q19",
+    "question": "Visite guidée d'un chantier archéologique en juillet",
+    "expected_keywords": ["juillet", "visite"]
+  },
+  {
+    "id": "q20",
+    "question": "Fouilles protohistoriques bénévoles en France",
+    "expected_keywords": ["protohistor", "bénévole"]
+  }
+]

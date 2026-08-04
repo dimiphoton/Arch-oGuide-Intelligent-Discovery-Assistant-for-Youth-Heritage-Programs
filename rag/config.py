@@ -34,10 +34,11 @@ class Settings(BaseSettings):
     qdrant_url: str = Field(default="http://localhost:6333")
     qdrant_collection: str = Field(default="chantiers_archeo")
 
-    # Retrieval (valeurs par défaut pour les branches suivantes)
+    # Retrieval
     chunk_size: int = Field(default=800)
     chunk_overlap: int = Field(default=100)
     top_k: int = Field(default=5)
+    retrieval_mode: str = Field(default="hybrid")  # vector | bm25 | hybrid
 
 
 def get_settings() -> Settings:

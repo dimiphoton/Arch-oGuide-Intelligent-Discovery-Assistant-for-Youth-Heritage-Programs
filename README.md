@@ -49,8 +49,8 @@ ArchéoGuide transforme ce PDF officiel en **assistant conversationnel** :
 | `scrapping` | Téléchargement automatique du PDF (GitHub Actions quotidien) | ✅ |
 | `docs/foundation` | Structure projet, config, README, deps pinées | ✅ |
 | `ingest` | Pipeline Prefect : PDF → chunks → Qdrant | ✅ |
-| `rag-core` | Retrieval vectoriel + LLM, CLI | 🚧 |
-| `eval-retrieval` | Comparaison BM25 / vector / hybrid | ⬜ |
+| `rag-core` | Retrieval vectoriel + LLM, CLI | ✅ |
+| `eval-retrieval` | Comparaison BM25 / vector / hybrid | 🚧 |
 | `rag-advanced` | Query rewriting + re-ranking | ⬜ |
 | `eval-llm` | Comparaison de prompts | ⬜ |
 | `ui-streamlit` | Interface chat Streamlit | ⬜ |
@@ -179,6 +179,24 @@ python scripts/ask.py -k 8 "Visites de chantiers pour des collégiens"
 
 La CLI affiche la réponse et les sources (page + score).
 
+Mode de retrieval configurable via `.env` ou `rag/config.py` :
+- `vector` — recherche sémantique pure
+- `bm25` — mots-clés (rank-bm25)
+- `hybrid` — fusion RRF vector + BM25 **(défaut, meilleur mode selon l'éval)**
+
+---
+
+## Évaluation retrieval
+
+Compare **vector**, **BM25** et **hybrid** sur 20 questions de référence (`eval/ground_truth.json`).
+
+```bash
+python scripts/run_eval_retrieval.py           # nécessite Qdrant + OPENAI_API_KEY
+python scripts/run_eval_retrieval.py -k 5 -v
+```
+
+Résultats exportés dans `eval/results/retrieval_eval_latest.json` (hit rate, MRR, meilleur mode).
+
 ---
 
 ## Scraping
@@ -217,14 +235,14 @@ pytest tests/
 | :--- | :--- |
 | Problem Description | 2/2 |
 | Retrieval Flow | 2/2 |
-| Retrieval Evaluation | 0/2 |
+| Retrieval Evaluation | 2/2 |
 | LLM Evaluation | 0/2 |
 | Interface | 1/2 (CLI ask.py ; Streamlit à venir) |
 | Ingestion Pipeline | 2/2 (scrape auto + pipeline Prefect/Qdrant) |
 | Monitoring | 0/2 |
 | Containerization | 1/2 (docker-compose Qdrant ; stack complète à venir) |
 | Reproducibility | 2/2 |
-| Best Practices | 0/3 |
+| Best Practices | 1/3 (hybrid search évalué ; rerank + rewrite à venir) |
 | Bonus | 0/2 (Cloud Deployment) |
 
 ---

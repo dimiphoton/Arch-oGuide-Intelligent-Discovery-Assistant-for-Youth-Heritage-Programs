@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from rag.generate import format_context
 from rag.pipeline import ask
-from rag.retrieval import RetrievedChunk
+from rag.types import RetrievedChunk
 
 
 def test_format_context_includes_pages() -> None:

@@ -1,44 +1,113 @@
-"""Recherche vectorielle dans Qdrant."""
+"""Recherche vectorielle, BM25 et hybride dans Qdrant."""
 
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from typing import Literal
 
 from openai import OpenAI
 from qdrant_client import QdrantClient
 
+from eval.bm25 import BM25Index
+from eval.corpus import load_corpus
+from eval.hybrid import reciprocal_rank_fusion
 from ingest.embed import embed_texts, get_openai_client
 from ingest.index import get_qdrant_client
 from rag.config import Settings, get_settings
+from rag.types import RetrievedChunk
 
 logger = logging.getLogger(__name__)
 
+RetrievalMode = Literal["vector", "bm25", "hybrid"]
 
-@dataclass
-class RetrievedChunk:
-    """Chunk récupéré depuis Qdrant."""
+# Cache BM25 en mémoire (reconstruit si la collection change)
+_bm25_cache: BM25Index | None = None
+_bm25_cache_size: int = 0
 
-    text: str
-    page_number: int
-    score: float
-    source: str
+
+def _get_bm25_index(settings: Settings, qdrant: QdrantClient) -> BM25Index:
+    """Construit ou réutilise l'index BM25 depuis Qdrant."""
+    global _bm25_cache, _bm25_cache_size
+
+    chunks = load_corpus(settings=settings, client=qdrant)
+    if _bm25_cache is not None and _bm25_cache_size == len(chunks):
+        return _bm25_cache
+
+    logger.info("Construction index BM25 (%s chunks)…", len(chunks))
+    _bm25_cache = BM25Index(chunks)
+    _bm25_cache_size = len(chunks)
+    return _bm25_cache
+
+
+def search_vector(
+    query: str,
+    top_k: int,
+    settings: Settings,
+    qdrant: QdrantClient,
+    openai_client: OpenAI,
+) -> list[RetrievedChunk]:
+    """Recherche vectorielle pure (cosine similarity Qdrant)."""
+    query_vector = embed_texts([query], settings=settings, client=openai_client)[0]
+
+    hits = qdrant.search(
+        collection_name=settings.qdrant_collection,
+        query_vector=query_vector,
+        limit=top_k,
+    )
+
+    results: list[RetrievedChunk] = []
+    for hit in hits:
+        payload = hit.payload or {}
+        results.append(
+            RetrievedChunk(
+                chunk_id=str(hit.id),
+                text=str(payload.get("text", "")),
+                page_number=int(payload.get("page_number", 0)),
+                score=float(hit.score or 0.0),
+                source=str(payload.get("source", "")),
+            )
+        )
+    return results
+
+
+def search_bm25(
+    query: str,
+    top_k: int,
+    settings: Settings,
+    qdrant: QdrantClient,
+) -> list[RetrievedChunk]:
+    """Recherche BM25 pure sur le corpus indexé."""
+    index = _get_bm25_index(settings, qdrant)
+    return index.search(query, top_k=top_k)
+
+
+def search_hybrid(
+    query: str,
+    top_k: int,
+    settings: Settings,
+    qdrant: QdrantClient,
+    openai_client: OpenAI,
+) -> list[RetrievedChunk]:
+    """Fusion RRF entre vectoriel et BM25."""
+    candidate_k = top_k * 3
+    vector_results = search_vector(query, candidate_k, settings, qdrant, openai_client)
+    bm25_results = search_bm25(query, candidate_k, settings, qdrant)
+    return reciprocal_rank_fusion([vector_results, bm25_results], top_k=top_k)
 
 
 def search(
     query: str,
     top_k: int | None = None,
+    mode: RetrievalMode | None = None,
     settings: Settings | None = None,
     qdrant: QdrantClient | None = None,
     openai_client: OpenAI | None = None,
 ) -> list[RetrievedChunk]:
-    """Recherche les chunks les plus pertinents pour une question."""
+    """Recherche les chunks les plus pertinents (mode configurable)."""
     cfg = settings or get_settings()
     k = top_k or cfg.top_k
+    retrieval_mode: RetrievalMode = mode or cfg.retrieval_mode  # type: ignore[assignment]
     client = qdrant or get_qdrant_client(cfg)
-    oai = openai_client or get_openai_client(cfg)
-
-    query_vector = embed_texts([query], settings=cfg, client=oai)[0]
 
     if not client.collection_exists(cfg.qdrant_collection):
         msg = (
@@ -47,23 +116,14 @@ def search(
         )
         raise ValueError(msg)
 
-    hits = client.search(
-        collection_name=cfg.qdrant_collection,
-        query_vector=query_vector,
-        limit=k,
-    )
+    if retrieval_mode == "bm25":
+        results = search_bm25(query, k, cfg, client)
+    elif retrieval_mode == "hybrid":
+        oai = openai_client or get_openai_client(cfg)
+        results = search_hybrid(query, k, cfg, client, oai)
+    else:
+        oai = openai_client or get_openai_client(cfg)
+        results = search_vector(query, k, cfg, client, oai)
 
-    results: list[RetrievedChunk] = []
-    for hit in hits:
-        payload = hit.payload or {}
-        results.append(
-            RetrievedChunk(
-                text=str(payload.get("text", "")),
-                page_number=int(payload.get("page_number", 0)),
-                score=float(hit.score or 0.0),
-                source=str(payload.get("source", "")),
-            )
-        )
-
-    logger.info("%s chunks récupérés pour la requête", len(results))
+    logger.info("%s chunks récupérés (mode=%s)", len(results), retrieval_mode)
     return results

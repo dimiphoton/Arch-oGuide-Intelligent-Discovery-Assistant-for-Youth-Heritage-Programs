@@ -8,7 +8,7 @@ from openai import OpenAI
 
 from ingest.embed import get_openai_client
 from rag.config import Settings, get_settings
-from rag.retrieval import RetrievedChunk
+from rag.types import RetrievedChunk
 
 logger = logging.getLogger(__name__)
 
