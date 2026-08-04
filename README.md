@@ -48,8 +48,8 @@ ArchéoGuide transforme ce PDF officiel en **assistant conversationnel** :
 |---|---|---|
 | `scrapping` | Téléchargement automatique du PDF (GitHub Actions quotidien) | ✅ |
 | `docs/foundation` | Structure projet, config, README, deps pinées | ✅ |
-| `ingest` | Pipeline Prefect : PDF → chunks → Qdrant | 🚧 |
-| `rag-core` | Retrieval vectoriel + LLM, CLI | ⬜ |
+| `ingest` | Pipeline Prefect : PDF → chunks → Qdrant | ✅ |
+| `rag-core` | Retrieval vectoriel + LLM, CLI | 🚧 |
 | `eval-retrieval` | Comparaison BM25 / vector / hybrid | ⬜ |
 | `rag-advanced` | Query rewriting + re-ranking | ⬜ |
 | `eval-llm` | Comparaison de prompts | ⬜ |
@@ -161,6 +161,26 @@ Pipeline : **extraction PyMuPDF** → **chunking** → **embeddings OpenAI** →
 
 ---
 
+## RAG (question / réponse)
+
+Le module `rag/` implémente le flux retrieval + génération LLM.
+
+### Prérequis
+
+- PDF ingéré dans Qdrant (`python scripts/run_ingest.py`)
+- `OPENAI_API_KEY` configurée dans `.env`
+
+### Poser une question
+
+```bash
+python scripts/ask.py "Quels chantiers acceptent des volontaires en Bretagne ?"
+python scripts/ask.py -k 8 "Visites de chantiers pour des collégiens"
+```
+
+La CLI affiche la réponse et les sources (page + score).
+
+---
+
 ## Scraping
 
 Le module `scrapping/` télécharge automatiquement le PDF officiel depuis culture.gouv.fr, avec détection de changements (date de parution, URL, ETag, hash SHA-256) pour éviter les retéléchargements inutiles.
@@ -196,10 +216,10 @@ pytest tests/
 | Category | Status |
 | :--- | :--- |
 | Problem Description | 2/2 |
-| Retrieval Flow | 0/2 |
+| Retrieval Flow | 2/2 |
 | Retrieval Evaluation | 0/2 |
 | LLM Evaluation | 0/2 |
-| Interface | 0/2 |
+| Interface | 1/2 (CLI ask.py ; Streamlit à venir) |
 | Ingestion Pipeline | 2/2 (scrape auto + pipeline Prefect/Qdrant) |
 | Monitoring | 0/2 |
 | Containerization | 1/2 (docker-compose Qdrant ; stack complète à venir) |
