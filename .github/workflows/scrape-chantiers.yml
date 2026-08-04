@@ -2,8 +2,8 @@ name: Scrape chantiers PDF
 
 on:
   schedule:
-    # Tous les 4 jours à 06:00 UTC
-    - cron: "0 6 */4 * *"
+    # Tous les jours à 06:00 UTC (07:00 heure de Paris en hiver, 08:00 en été)
+    - cron: "0 6 * * *"
   workflow_dispatch:
 
 permissions:

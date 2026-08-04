@@ -46,7 +46,7 @@ Le PDF courant est enregistré dans `data/pdfs/liste_chantiers_latest.pdf`. L'é
 
 ### Automatisation (GitHub Actions)
 
-Le workflow [Scrape chantiers PDF](.github/workflows/scrape-chantiers.yml) s'exécute tous les 4 jours (06:00 UTC) et peut aussi être lancé manuellement (`workflow_dispatch`). En cas de nouvelle version, il met à jour `metadata.json` et publie le PDF en artifact GitHub (rétention 90 jours).
+Le workflow [Scrape chantiers PDF](.github/workflows/scrape-chantiers.yml) s'exécute **tous les jours** à 06:00 UTC et peut aussi être lancé manuellement (`workflow_dispatch`). En cas de nouvelle version, il met à jour `metadata.json` et publie le PDF en artifact GitHub (rétention 90 jours).
 
 ### Tests
 
