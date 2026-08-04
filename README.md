@@ -47,8 +47,8 @@ ArchéoGuide transforme ce PDF officiel en **assistant conversationnel** :
 | Branche | Contenu | Statut |
 |---|---|---|
 | `scrapping` | Téléchargement automatique du PDF (GitHub Actions quotidien) | ✅ |
-| `docs/foundation` | Structure projet, config, README, deps pinées | 🚧 |
-| `ingest` | Pipeline Prefect : PDF → chunks → Qdrant | ⬜ |
+| `docs/foundation` | Structure projet, config, README, deps pinées | ✅ |
+| `ingest` | Pipeline Prefect : PDF → chunks → Qdrant | 🚧 |
 | `rag-core` | Retrieval vectoriel + LLM, CLI | ⬜ |
 | `eval-retrieval` | Comparaison BM25 / vector / hybrid | ⬜ |
 | `rag-advanced` | Query rewriting + re-ranking | ⬜ |
@@ -73,7 +73,7 @@ Arch-oGuide/
 ├── data/
 │   ├── pdfs/         # PDF téléchargé (gitignored)
 │   └── metadata.json # État du dernier scrape
-├── docker/           # docker-compose (à venir)
+├── docker/           # docker-compose (Qdrant)
 ├── requirements.txt          # Dépendances principales (pinées)
 ├── requirements-scraping.txt # Scraping PDF
 ├── requirements-ingest.txt   # Ingestion PDF → Qdrant (branche ingest)
@@ -120,6 +120,47 @@ python scripts/check_setup.py
 
 ---
 
+## Ingestion (PDF → Qdrant)
+
+Le module `ingest/` transforme le PDF en chunks indexés dans **Qdrant**, orchestré par un **flow Prefect**.
+
+### 1. Démarrer Qdrant
+
+```bash
+cd docker
+docker compose up -d
+```
+
+Qdrant est accessible sur `http://localhost:6333`.
+
+### 2. Installer les dépendances d'ingestion
+
+```bash
+pip install -r requirements-ingest.txt
+```
+
+### 3. Lancer l'ingestion
+
+```bash
+python scripts/run_ingest.py --dry-run    # test extraction + chunking (sans API)
+python scripts/run_ingest.py              # ingestion complète (OpenAI + Qdrant)
+python scripts/run_ingest.py --recreate   # recrée la collection Qdrant
+```
+
+### Flow Prefect (automatisation)
+
+```bash
+# Via Prefect CLI
+prefect flow run ingest/flow.py:ingest_flow
+
+# Ou depuis Python
+python -c "from ingest.flow import ingest_flow; ingest_flow()"
+```
+
+Pipeline : **extraction PyMuPDF** → **chunking** → **embeddings OpenAI** → **index Qdrant**.
+
+---
+
 ## Scraping
 
 Le module `scrapping/` télécharge automatiquement le PDF officiel depuis culture.gouv.fr, avec détection de changements (date de parution, URL, ETag, hash SHA-256) pour éviter les retéléchargements inutiles.
@@ -159,10 +200,10 @@ pytest tests/
 | Retrieval Evaluation | 0/2 |
 | LLM Evaluation | 0/2 |
 | Interface | 0/2 |
-| Ingestion Pipeline | 1/2 (scrape auto ; pipeline RAG à venir) |
+| Ingestion Pipeline | 2/2 (scrape auto + pipeline Prefect/Qdrant) |
 | Monitoring | 0/2 |
-| Containerization | 0/2 |
-| Reproducibility | 1/2 (instructions + deps pinées ; RAG à venir) |
+| Containerization | 1/2 (docker-compose Qdrant ; stack complète à venir) |
+| Reproducibility | 2/2 |
 | Best Practices | 0/3 |
 | Bonus | 0/2 (Cloud Deployment) |
 
