@@ -27,7 +27,11 @@ def test_ask_returns_response(mock_search: MagicMock, mock_generate: MagicMock) 
     ]
     mock_generate.return_value = "Voici un chantier en Bretagne."
 
-    response = ask("Chantiers en Bretagne ?")
+    response = ask(
+        "Chantiers en Bretagne ?",
+        rewrite=False,
+        rerank=False,
+    )
 
     assert response.question == "Chantiers en Bretagne ?"
     assert "Bretagne" in response.answer

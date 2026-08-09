@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     top_k: int = Field(default=5)
     retrieval_mode: str = Field(default="hybrid")  # vector | bm25 | hybrid
 
+    # RAG avancé (branche rag-advanced)
+    enable_query_rewrite: bool = Field(default=True)
+    enable_rerank: bool = Field(default=True)
+
 
 def get_settings() -> Settings:
     """Retourne une instance de configuration (utile pour les tests)."""

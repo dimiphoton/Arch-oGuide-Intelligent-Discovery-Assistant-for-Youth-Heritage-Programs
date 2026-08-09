@@ -50,8 +50,8 @@ ArchéoGuide transforme ce PDF officiel en **assistant conversationnel** :
 | `docs/foundation` | Structure projet, config, README, deps pinées | ✅ |
 | `ingest` | Pipeline Prefect : PDF → chunks → Qdrant | ✅ |
 | `rag-core` | Retrieval vectoriel + LLM, CLI | ✅ |
-| `eval-retrieval` | Comparaison BM25 / vector / hybrid | 🚧 |
-| `rag-advanced` | Query rewriting + re-ranking | ⬜ |
+| `eval-retrieval` | Comparaison BM25 / vector / hybrid | ✅ |
+| `rag-advanced` | Query rewriting + re-ranking | 🚧 |
 | `eval-llm` | Comparaison de prompts | ⬜ |
 | `ui-streamlit` | Interface chat Streamlit | ⬜ |
 | `monitoring` | Feedback utilisateur + dashboard | ⬜ |
@@ -183,6 +183,12 @@ Mode de retrieval configurable via `.env` ou `rag/config.py` :
 - `vector` — recherche sémantique pure
 - `bm25` — mots-clés (rank-bm25)
 - `hybrid` — fusion RRF vector + BM25 **(défaut, meilleur mode selon l'éval)**
+- **Query rewriting** — reformulation LLM avant recherche (activé par défaut)
+- **Re-ranking** — re-classement LLM des chunks candidats (activé par défaut)
+
+```bash
+python scripts/ask.py --no-rewrite --no-rerank "..."  # désactiver les optimisations
+```
 
 ---
 
@@ -242,7 +248,7 @@ pytest tests/
 | Monitoring | 0/2 |
 | Containerization | 1/2 (docker-compose Qdrant ; stack complète à venir) |
 | Reproducibility | 2/2 |
-| Best Practices | 1/3 (hybrid search évalué ; rerank + rewrite à venir) |
+| Best Practices | 3/3 (hybrid + rewrite + rerank) |
 | Bonus | 0/2 (Cloud Deployment) |
 
 ---

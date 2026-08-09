@@ -26,6 +26,16 @@ def main() -> int:
         help="Nombre de chunks à récupérer (défaut : config)",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="Logs détaillés")
+    parser.add_argument(
+        "--no-rewrite",
+        action="store_true",
+        help="Désactive la réécriture de la question.",
+    )
+    parser.add_argument(
+        "--no-rerank",
+        action="store_true",
+        help="Désactive le re-classement des chunks.",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
@@ -41,12 +51,20 @@ def main() -> int:
         return 1
 
     try:
-        response = ask(question, top_k=args.top_k)
+        response = ask(
+            question,
+            top_k=args.top_k,
+            rewrite=not args.no_rewrite,
+            rerank=not args.no_rerank,
+        )
     except Exception as exc:
         logging.error("Erreur RAG : %s", exc)
         return 1
 
     print("\n" + response.answer + "\n")
+
+    if response.rewritten_query and response.rewritten_query != question:
+        print(f"(Requête reformulée : {response.rewritten_query})\n")
 
     if response.sources:
         print("--- Sources ---")
