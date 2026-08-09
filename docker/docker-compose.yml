@@ -6,11 +6,6 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/readyz"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   app:
     build:
@@ -25,8 +20,7 @@ services:
     volumes:
       - ../data:/app/data
     depends_on:
-      qdrant:
-        condition: service_healthy
+      - qdrant
     restart: unless-stopped
 
   ingest:
@@ -40,8 +34,7 @@ services:
     volumes:
       - ../data:/app/data
     depends_on:
-      qdrant:
-        condition: service_healthy
+      - qdrant
     profiles:
       - ingest
     command: ["python", "scripts/run_ingest.py"]
