@@ -1,0 +1,28 @@
+# Déploiement Render.com (bonus cloud)
+# Docs : https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: archoguide
+    runtime: docker
+    dockerfilePath: ./docker/Dockerfile
+    dockerContext: .
+    plan: free
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: QDRANT_URL
+        value: http://qdrant:6333
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    healthCheckPath: /_stcore/health
+
+  - type: pserv
+    name: archoguide-qdrant
+    runtime: docker
+    image: qdrant/qdrant:v1.12.5
+    plan: free
+    disk:
+      name: qdrant-data
+      mountPath: /qdrant/storage
+      sizeGB: 1

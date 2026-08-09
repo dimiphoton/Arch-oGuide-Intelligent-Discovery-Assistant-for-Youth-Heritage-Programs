@@ -54,9 +54,9 @@ ArchéoGuide transforme ce PDF officiel en **assistant conversationnel** :
 | `rag-advanced` | Query rewriting + re-ranking | ✅ |
 | `eval-llm` | Comparaison de prompts | ✅ |
 | `ui-streamlit` | Interface chat Streamlit | ✅ |
-| `monitoring` | Feedback + dashboard | 🚧 |
-| `monitoring` | Feedback utilisateur + dashboard | ⬜ |
-| `docker` | docker-compose complet | ⬜ |
+| `monitoring` | Feedback + dashboard | ✅ |
+| `docker` | docker-compose complet | ✅ |
+| `deploy-cloud` | Déploiement Render | ✅ |
 
 ---
 
@@ -64,7 +64,8 @@ ArchéoGuide transforme ce PDF officiel en **assistant conversationnel** :
 
 ```
 Arch-oGuide/
-├── app/              # Interface Streamlit (à venir)
+├── app/              # Interface Streamlit
+├── monitoring/       # Logs et métriques
 ├── rag/              # Config, retrieval, génération
 ├── ingest/           # Pipeline d'ingestion PDF
 ├── eval/             # Évaluations retrieval & LLM
@@ -74,7 +75,7 @@ Arch-oGuide/
 ├── data/
 │   ├── pdfs/         # PDF téléchargé (gitignored)
 │   └── metadata.json # État du dernier scrape
-├── docker/           # docker-compose (Qdrant)
+├── docker/           # Dockerfile + docker-compose
 ├── requirements.txt          # Dépendances principales (pinées)
 ├── requirements-scraping.txt # Scraping PDF
 ├── requirements-ingest.txt   # Ingestion PDF → Qdrant (branche ingest)
@@ -249,6 +250,34 @@ Les requêtes CLI (`ask.py`) et Streamlit sont loggées automatiquement.
 
 ---
 
+## Docker (stack complète)
+
+```bash
+# 1. Configurer .env (OPENAI_API_KEY)
+cp .env.example .env
+
+# 2. Lancer Qdrant + app Streamlit
+cd docker
+docker compose up -d --build
+
+# 3. Ingérer le PDF (une fois)
+docker compose --profile ingest run --rm ingest
+
+# App accessible sur http://localhost:8501
+```
+
+---
+
+## Déploiement cloud (Render)
+
+Fichier `render.yaml` inclus pour déploiement sur [Render.com](https://render.com) :
+- Service web Streamlit (Dockerfile)
+- Service Qdrant managé
+
+Configurer `OPENAI_API_KEY` dans le dashboard Render après déploiement.
+
+---
+
 ## Scraping
 
 Le module `scrapping/` télécharge automatiquement le PDF officiel depuis culture.gouv.fr, avec détection de changements (date de parution, URL, ETag, hash SHA-256) pour éviter les retéléchargements inutiles.
@@ -290,10 +319,10 @@ pytest tests/
 | Interface | 2/2 |
 | Ingestion Pipeline | 2/2 (scrape auto + pipeline Prefect/Qdrant) |
 | Monitoring | 2/2 |
-| Containerization | 1/2 (docker-compose Qdrant ; stack complète à venir) |
+| Containerization | 2/2 |
 | Reproducibility | 2/2 |
 | Best Practices | 3/3 (hybrid + rewrite + rerank) |
-| Bonus | 0/2 (Cloud Deployment) |
+| Bonus | 2/2 (Render cloud) |
 
 ---
 
