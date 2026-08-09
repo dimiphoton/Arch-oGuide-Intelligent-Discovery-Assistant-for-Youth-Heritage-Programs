@@ -53,7 +53,8 @@ ArchéoGuide transforme ce PDF officiel en **assistant conversationnel** :
 | `eval-retrieval` | Comparaison BM25 / vector / hybrid | ✅ |
 | `rag-advanced` | Query rewriting + re-ranking | ✅ |
 | `eval-llm` | Comparaison de prompts | ✅ |
-| `ui-streamlit` | Interface chat Streamlit | 🚧 |
+| `ui-streamlit` | Interface chat Streamlit | ✅ |
+| `monitoring` | Feedback + dashboard | 🚧 |
 | `monitoring` | Feedback utilisateur + dashboard | ⬜ |
 | `docker` | docker-compose complet | ⬜ |
 
@@ -220,6 +221,34 @@ Résultats → `eval/results/llm_eval_latest.json`. Prompt par défaut : `struct
 
 ---
 
+## Interface Streamlit
+
+```bash
+pip install -r requirements-ui.txt
+python scripts/run_app.py
+# ou : streamlit run app/Home.py
+```
+
+- **Chat** : conversation avec sources citées
+- **Monitoring** : dashboard (volume, latence, feedback, top questions)
+- **👍 / 👎** : feedback enregistré dans `data/logs/queries.jsonl`
+
+---
+
+## Monitoring
+
+Le dashboard Streamlit (**page Monitoring**) affiche 6 graphiques :
+1. Volume de requêtes / jour
+2. Latence dans le temps
+3. Taux de feedback 👍/👎
+4. Distribution de latence
+5. Requêtes par heure
+6. Top questions
+
+Les requêtes CLI (`ask.py`) et Streamlit sont loggées automatiquement.
+
+---
+
 ## Scraping
 
 Le module `scrapping/` télécharge automatiquement le PDF officiel depuis culture.gouv.fr, avec détection de changements (date de parution, URL, ETag, hash SHA-256) pour éviter les retéléchargements inutiles.
@@ -258,9 +287,9 @@ pytest tests/
 | Retrieval Flow | 2/2 |
 | Retrieval Evaluation | 2/2 |
 | LLM Evaluation | 2/2 |
-| Interface | 1/2 (CLI ask.py ; Streamlit à venir) |
+| Interface | 2/2 |
 | Ingestion Pipeline | 2/2 (scrape auto + pipeline Prefect/Qdrant) |
-| Monitoring | 0/2 |
+| Monitoring | 2/2 |
 | Containerization | 1/2 (docker-compose Qdrant ; stack complète à venir) |
 | Reproducibility | 2/2 |
 | Best Practices | 3/3 (hybrid + rewrite + rerank) |

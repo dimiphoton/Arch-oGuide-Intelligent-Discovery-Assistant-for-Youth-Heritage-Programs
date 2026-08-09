@@ -3,6 +3,7 @@
 
 # Données locales (PDF téléchargés)
 data/pdfs/*.pdf
+data/logs/*.jsonl
 
 # Python
 __pycache__/

@@ -1,3 +1,4 @@
-# Dépendances interface Streamlit (branche ui-streamlit)
+﻿# Dépendances interface Streamlit (branche ui-streamlit)
 -r requirements.txt
 streamlit==1.41.1
+pandas==2.2.3

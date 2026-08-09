@@ -31,6 +31,7 @@ def test_ask_returns_response(mock_search: MagicMock, mock_generate: MagicMock) 
         "Chantiers en Bretagne ?",
         rewrite=False,
         rerank=False,
+        log=False,
     )
 
     assert response.question == "Chantiers en Bretagne ?"
