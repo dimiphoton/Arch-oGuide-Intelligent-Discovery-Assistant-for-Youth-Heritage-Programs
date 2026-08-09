@@ -52,8 +52,8 @@ ArchéoGuide transforme ce PDF officiel en **assistant conversationnel** :
 | `rag-core` | Retrieval vectoriel + LLM, CLI | ✅ |
 | `eval-retrieval` | Comparaison BM25 / vector / hybrid | ✅ |
 | `rag-advanced` | Query rewriting + re-ranking | ✅ |
-| `eval-llm` | Comparaison de prompts | 🚧 |
-| `ui-streamlit` | Interface chat Streamlit | ⬜ |
+| `eval-llm` | Comparaison de prompts | ✅ |
+| `ui-streamlit` | Interface chat Streamlit | 🚧 |
 | `monitoring` | Feedback utilisateur + dashboard | ⬜ |
 | `docker` | docker-compose complet | ⬜ |
 
