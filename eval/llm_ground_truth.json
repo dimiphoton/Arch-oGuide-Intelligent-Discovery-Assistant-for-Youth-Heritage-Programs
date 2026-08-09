@@ -1,0 +1,50 @@
+[
+  {
+    "id": "l01",
+    "question": "Quels chantiers archéologiques acceptent des bénévoles en Bretagne ?",
+    "expected_answer_keywords": ["Bretagne", "bénévole"],
+    "require_citation": true
+  },
+  {
+    "id": "l02",
+    "question": "Où peut-on visiter un chantier archéologique en Normandie ?",
+    "expected_answer_keywords": ["Normandie", "visite"],
+    "require_citation": true
+  },
+  {
+    "id": "l03",
+    "question": "Chantiers archéologiques pour les scolaires en Île-de-France",
+    "expected_answer_keywords": ["scolaire"],
+    "require_citation": false
+  },
+  {
+    "id": "l04",
+    "question": "Fouilles bénévoles en Provence-Alpes-Côte d'Azur",
+    "expected_answer_keywords": ["Provence", "bénévole"],
+    "require_citation": true
+  },
+  {
+    "id": "l05",
+    "question": "Visites de sites archéologiques pour les familles en été",
+    "expected_answer_keywords": ["visite", "famille"],
+    "require_citation": false
+  },
+  {
+    "id": "l06",
+    "question": "Chantiers de préhistoire accessibles aux amateurs",
+    "expected_answer_keywords": ["préhistoire"],
+    "require_citation": false
+  },
+  {
+    "id": "l07",
+    "question": "Chantiers romains où participer comme bénévole",
+    "expected_answer_keywords": ["romain", "bénévole"],
+    "require_citation": true
+  },
+  {
+    "id": "l08",
+    "question": "Chantiers archéologiques en Corse",
+    "expected_answer_keywords": ["Corse"],
+    "require_citation": false
+  }
+]

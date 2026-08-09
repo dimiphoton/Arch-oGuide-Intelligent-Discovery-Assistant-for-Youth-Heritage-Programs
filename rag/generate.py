@@ -8,19 +8,10 @@ from openai import OpenAI
 
 from ingest.embed import get_openai_client
 from rag.config import Settings, get_settings
+from rag.prompts import get_prompt
 from rag.types import RetrievedChunk
 
 logger = logging.getLogger(__name__)
-
-SYSTEM_PROMPT = """Tu es ArchéoGuide, un assistant pour aider les jeunes, les familles \
-et les enseignants à découvrir des chantiers archéologiques en France.
-
-Règles :
-- Réponds en français, de façon claire et accessible.
-- Base-toi UNIQUEMENT sur le contexte fourni ci-dessous.
-- Si le contexte ne contient pas l'information, dis-le honnêtement.
-- Cite la page source quand c'est pertinent (ex. « p. 12 »).
-- Ne invente jamais de chantier, de date ou de contact."""
 
 
 def format_context(chunks: list[RetrievedChunk]) -> str:
@@ -41,16 +32,18 @@ def generate_answer(
     chunks: list[RetrievedChunk],
     settings: Settings | None = None,
     client: OpenAI | None = None,
+    prompt_name: str | None = None,
 ) -> str:
     """Génère une réponse à partir de la question et du contexte retrieval."""
     cfg = settings or get_settings()
     oai = client or get_openai_client(cfg)
     context = format_context(chunks)
+    system_prompt = get_prompt(prompt_name or cfg.llm_prompt_name)
 
     response = oai.chat.completions.create(
         model=cfg.llm_model,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": system_prompt},
             {
                 "role": "user",
                 "content": f"Contexte :\n{context}\n\nQuestion : {question}",
@@ -60,5 +53,5 @@ def generate_answer(
     )
 
     answer = response.choices[0].message.content or ""
-    logger.info("Réponse générée (%s caractères)", len(answer))
+    logger.info("Réponse générée (%s caractères, prompt=%s)", len(answer), prompt_name or cfg.llm_prompt_name)
     return answer.strip()

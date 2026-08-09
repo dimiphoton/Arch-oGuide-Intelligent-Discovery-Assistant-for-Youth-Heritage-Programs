@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     openai_api_key: str = Field(default="", validation_alias="OPENAI_API_KEY")
     embedding_model: str = Field(default="text-embedding-3-small")
     llm_model: str = Field(default="gpt-4o-mini")
+    llm_prompt_name: str = Field(default="structured_citations")
 
     # Qdrant
     qdrant_url: str = Field(default="http://localhost:6333")

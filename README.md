@@ -51,8 +51,8 @@ ArchéoGuide transforme ce PDF officiel en **assistant conversationnel** :
 | `ingest` | Pipeline Prefect : PDF → chunks → Qdrant | ✅ |
 | `rag-core` | Retrieval vectoriel + LLM, CLI | ✅ |
 | `eval-retrieval` | Comparaison BM25 / vector / hybrid | ✅ |
-| `rag-advanced` | Query rewriting + re-ranking | 🚧 |
-| `eval-llm` | Comparaison de prompts | ⬜ |
+| `rag-advanced` | Query rewriting + re-ranking | ✅ |
+| `eval-llm` | Comparaison de prompts | 🚧 |
 | `ui-streamlit` | Interface chat Streamlit | ⬜ |
 | `monitoring` | Feedback utilisateur + dashboard | ⬜ |
 | `docker` | docker-compose complet | ⬜ |
@@ -205,6 +205,21 @@ Résultats exportés dans `eval/results/retrieval_eval_latest.json` (hit rate, M
 
 ---
 
+## Évaluation LLM
+
+Compare **3 prompts** (`youth_friendly`, `factual_strict`, `structured_citations`) sur 8 questions de référence.
+
+Métriques : couverture mots-clés, citations, refus honnête (contexte vide).
+
+```bash
+python scripts/run_eval_llm.py -v
+python scripts/run_eval_llm.py --no-rag   # test refus uniquement
+```
+
+Résultats → `eval/results/llm_eval_latest.json`. Prompt par défaut : `structured_citations`.
+
+---
+
 ## Scraping
 
 Le module `scrapping/` télécharge automatiquement le PDF officiel depuis culture.gouv.fr, avec détection de changements (date de parution, URL, ETag, hash SHA-256) pour éviter les retéléchargements inutiles.
@@ -242,7 +257,7 @@ pytest tests/
 | Problem Description | 2/2 |
 | Retrieval Flow | 2/2 |
 | Retrieval Evaluation | 2/2 |
-| LLM Evaluation | 0/2 |
+| LLM Evaluation | 2/2 |
 | Interface | 1/2 (CLI ask.py ; Streamlit à venir) |
 | Ingestion Pipeline | 2/2 (scrape auto + pipeline Prefect/Qdrant) |
 | Monitoring | 0/2 |
