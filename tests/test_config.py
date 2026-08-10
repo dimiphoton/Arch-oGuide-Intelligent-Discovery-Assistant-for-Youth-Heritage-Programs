@@ -16,6 +16,7 @@ def test_default_pdf_path() -> None:
 def test_settings_defaults() -> None:
     settings = get_settings()
     assert settings.qdrant_collection == "chantiers_archeo"
-    assert settings.chunk_size == 2000
+    # > taille de la plus longue fiche pour garantir 1 fiche = 1 chunk
+    assert settings.chunk_size == 3000
     assert settings.top_k == 20
     assert settings.llm_model == "gpt-4o-mini"

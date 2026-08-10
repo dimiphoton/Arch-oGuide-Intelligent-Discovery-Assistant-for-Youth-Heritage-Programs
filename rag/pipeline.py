@@ -18,6 +18,7 @@ from rag.catalog import (
     load_chantier_catalog,
 )
 from rag.config import Settings, get_settings
+from rag.filters import build_metadata_filter
 from rag.generate import generate_answer
 from rag.query_rewrite import rewrite_query
 from rag.rerank import rerank_chunks
@@ -103,7 +104,10 @@ def ask(
         search_query = rewrite_query(question, settings=cfg) if do_rewrite else question
         rewritten = search_query if do_rewrite else None
         candidate_k = k * 3 if do_rerank else k
-        chunks = search(search_query, top_k=candidate_k, settings=cfg)
+        # Filtres métadonnées (région, disponibilité) déduits de la question
+        # originale et appliqués en amont de la recherche vectorielle + BM25.
+        metadata_filter = build_metadata_filter(question)
+        chunks = search(search_query, top_k=candidate_k, settings=cfg, metadata_filter=metadata_filter)
 
         if do_rerank and chunks:
             chunks = rerank_chunks(question, chunks, top_k=k, settings=cfg)

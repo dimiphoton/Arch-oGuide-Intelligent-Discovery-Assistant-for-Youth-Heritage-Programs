@@ -57,6 +57,8 @@ class ChantierRecord:
     text: str
     source: str
     chunk_id: str
+    commune: str = ""
+    statut: str = ""
 
 
 def _strip_accents(value: str) -> str:
@@ -189,6 +191,8 @@ def load_chantier_catalog(
                     text=str(payload.get("text", "")),
                     source=str(payload.get("source", "")),
                     chunk_id=str(point.id),
+                    commune=str(payload.get("commune", "")),
+                    statut=str(payload.get("statut", "")),
                 )
             )
         if offset is None:
@@ -264,6 +268,11 @@ def format_catalog_answer(records: list[ChantierRecord], region: str | None = No
     scope = f" en {region}" if region else ""
     lines = [f"Le document officiel recense **{len(records)} chantier(s)**{scope}.", ""]
 
+    statut_labels = {
+        "complet": " — COMPLET",
+        "achevee": " — CAMPAGNE ACHEVÉE",
+        "annulee": " — CAMPAGNE ANNULÉE",
+    }
     current_region = None
     numero = 0
     for item in records:
@@ -273,5 +282,7 @@ def format_catalog_answer(records: list[ChantierRecord], region: str | None = No
             current_region = item.region
             lines.append(f"**{current_region or 'Région non précisée'}**")
         numero += 1
-        lines.append(f"{numero}. {item.site_name} (p. {item.page_number})")
+        commune = f", {item.commune}" if item.commune else ""
+        statut = statut_labels.get(item.statut, "")
+        lines.append(f"{numero}. {item.site_name}{commune} (p. {item.page_number}){statut}")
     return "\n".join(lines)

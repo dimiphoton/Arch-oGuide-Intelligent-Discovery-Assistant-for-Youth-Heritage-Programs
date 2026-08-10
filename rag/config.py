@@ -36,7 +36,8 @@ class Settings(BaseSettings):
     qdrant_collection: str = Field(default="chantiers_archeo")
 
     # Retrieval — top_k élevé pour lister plusieurs chantiers
-    chunk_size: int = Field(default=2000)
+    # chunk_size > taille de la plus longue fiche (~2200 car.) : 1 fiche = 1 chunk
+    chunk_size: int = Field(default=3000)
     chunk_overlap: int = Field(default=100)
     top_k: int = Field(default=20)
     retrieval_mode: str = Field(default="hybrid")  # vector | bm25 | hybrid

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from qdrant_client import QdrantClient
 
@@ -18,6 +18,8 @@ class CorpusChunk:
     text: str
     page_number: int
     source: str
+    # Payload Qdrant complet (region, statut…) pour le filtrage métadonnées
+    payload: dict = field(default_factory=dict)
 
 
 def load_corpus(
@@ -54,6 +56,7 @@ def load_corpus(
                     text=text,
                     page_number=int(payload.get("page_number", 0)),
                     source=str(payload.get("source", "")),
+                    payload=dict(payload),
                 )
             )
         if offset is None:
