@@ -3,10 +3,19 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 
 from monitoring.store import log_query
+from rag.catalog import (
+    catalog_to_chunks,
+    detect_region,
+    filter_catalog,
+    format_catalog_summary,
+    is_catalog_query,
+    load_chantier_catalog,
+)
 from rag.config import Settings, get_settings
 from rag.generate import generate_answer
 from rag.query_rewrite import rewrite_query
@@ -29,6 +38,65 @@ class RagResponse:
     latency_ms: float = field(default=0.0)
 
 
+def _is_count_query(question: str) -> bool:
+    lowered = question.lower()
+    return bool(re.search(r"\bcombien\b|\bnombre\b|\bcombien y a\b", lowered))
+
+
+def _answer_from_catalog(question: str, settings: Settings) -> tuple[str, list[RetrievedChunk]] | None:
+    """
+    Répond via le catalogue complet (pas top_k) pour les questions liste/comptage.
+
+    Retourne None si ce n'est pas une question catalogue.
+    """
+    if not is_catalog_query(question):
+        return None
+
+    region = detect_region(question)
+    catalog = load_chantier_catalog(settings=settings)
+    filtered = filter_catalog(catalog, region=region)
+    chunks = catalog_to_chunks(filtered)
+    summary = format_catalog_summary(filtered, region=region)
+
+    if _is_count_query(question):
+        scope = f"en {region}" if region else "dans le document officiel"
+        answer = (
+            f"Le document officiel recense **{len(filtered)} chantier(s)** {scope}.\n\n"
+            f"{summary}"
+        )
+        return answer, chunks
+
+    # Liste : on donne le résumé + les fiches (tronquées si trop nombreuses)
+    max_full = 30
+    context_chunks = chunks[:max_full]
+    if len(chunks) > max_full:
+        # Injecte le résumé complet comme premier "chunk" synthétique
+        context_chunks = [
+            RetrievedChunk(
+                text=summary,
+                page_number=0,
+                score=1.0,
+                source="catalog",
+                chunk_id="catalog-summary",
+            ),
+            *context_chunks,
+        ]
+    else:
+        context_chunks = [
+            RetrievedChunk(
+                text=summary,
+                page_number=0,
+                score=1.0,
+                source="catalog",
+                chunk_id="catalog-summary",
+            ),
+            *chunks,
+        ]
+
+    answer = generate_answer(question, context_chunks, settings=settings)
+    return answer, chunks
+
+
 def ask(
     question: str,
     top_k: int | None = None,
@@ -44,17 +112,25 @@ def ask(
     do_rerank = cfg.enable_rerank if rerank is None else rerank
 
     start = time.perf_counter()
-    search_query = rewrite_query(question, settings=cfg) if do_rewrite else question
-    candidate_k = k * 3 if do_rerank else k
+    rewritten: str | None = None
 
-    chunks = search(search_query, top_k=candidate_k, settings=cfg)
-
-    if do_rerank and chunks:
-        chunks = rerank_chunks(question, chunks, top_k=k, settings=cfg)
+    catalog_result = _answer_from_catalog(question, cfg)
+    if catalog_result is not None:
+        answer, chunks = catalog_result
+        search_query = question
     else:
-        chunks = chunks[:k]
+        search_query = rewrite_query(question, settings=cfg) if do_rewrite else question
+        rewritten = search_query if do_rewrite else None
+        candidate_k = k * 3 if do_rerank else k
+        chunks = search(search_query, top_k=candidate_k, settings=cfg)
 
-    answer = generate_answer(question, chunks, settings=cfg)
+        if do_rerank and chunks:
+            chunks = rerank_chunks(question, chunks, top_k=k, settings=cfg)
+        else:
+            chunks = chunks[:k]
+
+        answer = generate_answer(question, chunks, settings=cfg)
+
     latency_ms = (time.perf_counter() - start) * 1000
 
     event_id = None
@@ -65,7 +141,7 @@ def ask(
         question=question,
         answer=answer,
         sources=chunks,
-        rewritten_query=search_query if do_rewrite else None,
+        rewritten_query=rewritten,
         event_id=event_id,
         latency_ms=latency_ms,
     )

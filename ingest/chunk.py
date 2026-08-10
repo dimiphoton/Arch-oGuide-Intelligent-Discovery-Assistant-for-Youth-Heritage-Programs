@@ -25,20 +25,18 @@ REGION_HEADERS = {
     "PROVENCE-ALPES-CÔTE D'AZUR",
 }
 
-# Statuts / bruit à ignorer comme titre de chantier.
 SKIP_TITLES = {
     "COMPLET",
     "CAMPAGNE ACHEVÉE",
     "CAMPAGNE ANNULÉE",
     "S'Y RENDRE",
     "FOUILLER",
+    "CONTACT",
+    "RESPONSABLE",
 }
 
-# Titre du chantier + ligne « Commune (Département) »
-CHANTIER_START = re.compile(
-    r"^([^\n]{2,90})\n([^\n]{2,90}\([^)]{2,40}\))\n",
-    re.MULTILINE,
-)
+# Ligne « Commune (Département) » — ex. Ambérieu-en-Bugey (Ain)
+COMMUNE_LINE = re.compile(r"^.+\([^)]{2,60}\)$")
 
 
 @dataclass
@@ -55,10 +53,7 @@ class TextChunk:
 
 
 def chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
-    """
-    Découpe un texte en morceaux avec chevauchement.
-    Coupe de préférence sur un espace pour ne pas briser les mots.
-    """
+    """Découpe un texte en morceaux avec chevauchement."""
     cleaned = text.strip()
     if not cleaned:
         return []
@@ -90,7 +85,6 @@ def chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
 
 def _normalize_region(line: str) -> str | None:
     """Retourne le nom de région si la ligne est un en-tête régional."""
-    # Normalise apostrophes typographiques du PDF (U+2019, U+2018, etc.)
     cleaned = (
         line.strip()
         .upper()
@@ -118,37 +112,93 @@ def _is_valid_chantier_title(title: str) -> bool:
         return False
     if cleaned.startswith("("):
         return False
-    # Évite les lignes qui sont juste un statut collé
-    if upper.startswith("NOUVEAU "):
-        return True
+    if cleaned.lower().startswith("responsable"):
+        return False
     return True
 
 
-def split_into_chantiers(pages: list[PageText]) -> list[dict]:
-    """
-    Découpe le PDF en fiches chantier (1 chantier = 1 chunk).
+def _looks_like_commune(line: str) -> bool:
+    """Vérifie si la ligne ressemble à « Commune (Département) »."""
+    cleaned = line.strip()
+    if not COMMUNE_LINE.match(cleaned):
+        return False
+    # Évite « Responsable : X (labo) » / « Contact : … »
+    lower = cleaned.lower()
+    if lower.startswith("responsable") or lower.startswith("contact"):
+        return False
+    return True
 
-    Chaque page est annotée ; on suit la région courante entre les pages.
+
+def _window_has_chantier_markers(lines: list[str], start_index: int) -> bool:
+    """Un vrai chantier contient Visiter/Fouiller dans les lignes qui suivent."""
+    window = "\n".join(lines[start_index : start_index + 20])
+    return (
+        "Visiter le chantier" in window
+        or "Visiter le château" in window
+        or "\nFouiller\n" in f"\n{window}\n"
+        or window.lstrip().startswith("Fouiller")
+    )
+
+
+def _find_chantier_spans(text: str) -> list[tuple[int, int, str, str]]:
     """
+    Trouve les spans (start, end, titre, commune) des fiches chantier.
+
+    Un chantier = titre + ligne commune (Dept) + marqueurs Visiter/Fouiller bientôt après.
+    """
+    lines = text.splitlines(keepends=True)
+    # Positions absolues de chaque ligne
+    offsets: list[int] = []
+    pos = 0
+    stripped_lines: list[str] = []
+    for line in lines:
+        offsets.append(pos)
+        stripped_lines.append(line.rstrip("\n"))
+        pos += len(line)
+
+    starts: list[tuple[int, str, str]] = []  # (line_index, title, commune)
+    for index in range(len(stripped_lines) - 1):
+        title = stripped_lines[index].strip()
+        commune = stripped_lines[index + 1].strip()
+        if not _is_valid_chantier_title(title):
+            continue
+        if _normalize_region(title):
+            continue
+        if not _looks_like_commune(commune):
+            continue
+        if not _window_has_chantier_markers(stripped_lines, index):
+            continue
+        starts.append((index, title, commune))
+
+    spans: list[tuple[int, int, str, str]] = []
+    for i, (line_index, title, commune) in enumerate(starts):
+        start_pos = offsets[line_index]
+        if i + 1 < len(starts):
+            end_pos = offsets[starts[i + 1][0]]
+        else:
+            end_pos = len(text)
+        spans.append((start_pos, end_pos, title, commune))
+    return spans
+
+
+def split_into_chantiers(pages: list[PageText]) -> list[dict]:
+    """Découpe le PDF en fiches chantier (1 chantier = 1 chunk)."""
     chantiers: list[dict] = []
     current_region = ""
 
     for page in pages:
         text = page.text
-        matches = list(CHANTIER_START.finditer(text))
+        region_before_page = current_region
 
-        # Positions des en-têtes régionaux dans la page
         region_marks: list[tuple[int, str]] = [
             (m.start(), region)
             for m in re.finditer(r"(?m)^(.+)$", text)
             if (region := _normalize_region(m.group(1)))
         ]
-
-        # Région en début de page = dernière région connue (pages précédentes)
-        region_before_page = current_region
+        if region_marks:
+            current_region = region_marks[-1][1]
 
         def region_at(pos: int) -> str:
-            """Région active à une position donnée dans la page."""
             active = region_before_page
             for mark_pos, region in region_marks:
                 if mark_pos <= pos:
@@ -157,13 +207,13 @@ def split_into_chantiers(pages: list[PageText]) -> list[dict]:
                     break
             return active
 
-        # Met à jour la région courante pour la page suivante
-        if region_marks:
-            current_region = region_marks[-1][1]
-
-        if not matches:
+        spans = _find_chantier_spans(text)
+        if not spans:
             stripped = text.strip()
-            if stripped and len(stripped) > 80:
+            if stripped and len(stripped) > 80 and not any(
+                marker in stripped for marker in ("Visiter le chantier", "\nFouiller\n")
+            ):
+                # Page d'intro / hors liste
                 chantiers.append(
                     {
                         "text": stripped,
@@ -174,28 +224,15 @@ def split_into_chantiers(pages: list[PageText]) -> list[dict]:
                 )
             continue
 
-        for index, match in enumerate(matches):
-            title = match.group(1).strip()
-            commune = match.group(2).strip()
-            if not _is_valid_chantier_title(title):
-                continue
-
-            if _normalize_region(title):
-                continue
-
-            start = match.start()
-            end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        for start, end, title, commune in spans:
             block = text[start:end].strip()
             if len(block) < 40:
                 continue
-
             region = region_at(start)
             header = f"Région : {region}\n" if region else ""
-            chunk_text_value = f"{header}{block}"
-
             chantiers.append(
                 {
-                    "text": chunk_text_value,
+                    "text": f"{header}{block}",
                     "page_number": page.page_number,
                     "region": region,
                     "site_name": title,
@@ -212,28 +249,20 @@ def build_chunks(
     chunk_size: int,
     chunk_overlap: int,
 ) -> list[TextChunk]:
-    """
-    Transforme les pages en chunks indexables.
-
-    Priorité : 1 chantier = 1 chunk. Si trop long, découpe avec overlap.
-    """
+    """Transforme les pages en chunks indexables (1 chantier = 1 chunk)."""
     chantiers = split_into_chantiers(pages)
     result: list[TextChunk] = []
     chunk_index = 0
 
     for chantier in chantiers:
-        pieces = chunk_text(chantier["text"], chunk_size, chunk_overlap)
-        if not pieces:
-            pieces = [chantier["text"]]
-
+        pieces = chunk_text(chantier["text"], chunk_size, chunk_overlap) or [chantier["text"]]
         for piece_index, piece in enumerate(pieces):
             site = chantier.get("site_name", "")
             region = chantier.get("region", "")
             seed = f"{source}:{chantier['page_number']}:{site}:{piece_index}:{piece[:80]}"
-            chunk_id = str(uuid5(NAMESPACE_URL, seed))
             result.append(
                 TextChunk(
-                    chunk_id=chunk_id,
+                    chunk_id=str(uuid5(NAMESPACE_URL, seed)),
                     text=piece,
                     page_number=chantier["page_number"],
                     chunk_index=chunk_index,
@@ -244,7 +273,6 @@ def build_chunks(
             )
             chunk_index += 1
 
-    # Sécurité : si le parsing chantier échoue totalement, fallback page/taille
     if not result:
         for page in pages:
             for index, text in enumerate(chunk_text(page.text, chunk_size, chunk_overlap)):
