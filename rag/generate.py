@@ -2,16 +2,26 @@
 
 from __future__ import annotations
 
+import json
 import logging
 
 from openai import OpenAI
 
 from ingest.embed import get_openai_client
-from rag.config import Settings, get_settings
+from rag.config import METADATA_PATH, Settings, get_settings
 from rag.prompts import get_prompt
 from rag.types import RetrievedChunk
 
 logger = logging.getLogger(__name__)
+
+
+def get_reference_date() -> str:
+    """Date de publication du document officiel (depuis data/metadata.json)."""
+    try:
+        metadata = json.loads(METADATA_PATH.read_text(encoding="utf-8"))
+        return str(metadata.get("pub_date", ""))
+    except (OSError, json.JSONDecodeError):
+        return ""
 
 
 def format_context(chunks: list[RetrievedChunk]) -> str:
@@ -38,7 +48,10 @@ def generate_answer(
     cfg = settings or get_settings()
     oai = client or get_openai_client(cfg)
     context = format_context(chunks)
-    system_prompt = get_prompt(prompt_name or cfg.llm_prompt_name)
+    system_prompt = get_prompt(
+        prompt_name or cfg.llm_prompt_name,
+        reference_date=get_reference_date(),
+    )
 
     response = oai.chat.completions.create(
         model=cfg.llm_model,

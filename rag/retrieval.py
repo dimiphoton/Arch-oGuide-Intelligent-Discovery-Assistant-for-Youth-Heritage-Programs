@@ -14,6 +14,7 @@ from eval.hybrid import reciprocal_rank_fusion
 from ingest.embed import embed_texts, get_openai_client
 from ingest.index import get_qdrant_client
 from rag.config import Settings, get_settings
+from rag.filters import MetadataFilter
 from rag.types import RetrievedChunk
 
 logger = logging.getLogger(__name__)
@@ -45,14 +46,16 @@ def search_vector(
     settings: Settings,
     qdrant: QdrantClient,
     openai_client: OpenAI,
+    metadata_filter: MetadataFilter | None = None,
 ) -> list[RetrievedChunk]:
-    """Recherche vectorielle pure (cosine similarity Qdrant)."""
+    """Recherche vectorielle pure (cosine similarity Qdrant, filtre en amont)."""
     query_vector = embed_texts([query], settings=settings, client=openai_client)[0]
 
     hits = qdrant.search(
         collection_name=settings.qdrant_collection,
         query_vector=query_vector,
         limit=top_k,
+        query_filter=metadata_filter.to_qdrant() if metadata_filter else None,
     )
 
     results: list[RetrievedChunk] = []
@@ -75,10 +78,14 @@ def search_bm25(
     top_k: int,
     settings: Settings,
     qdrant: QdrantClient,
+    metadata_filter: MetadataFilter | None = None,
 ) -> list[RetrievedChunk]:
-    """Recherche BM25 pure sur le corpus indexé."""
+    """Recherche BM25 pure sur le corpus indexé (filtre métadonnées en amont)."""
     index = _get_bm25_index(settings, qdrant)
-    return index.search(query, top_k=top_k)
+    predicate = None
+    if metadata_filter is not None and not metadata_filter.is_empty():
+        predicate = metadata_filter.accepts
+    return index.search(query, top_k=top_k, predicate=predicate)
 
 
 def search_hybrid(
@@ -87,11 +94,14 @@ def search_hybrid(
     settings: Settings,
     qdrant: QdrantClient,
     openai_client: OpenAI,
+    metadata_filter: MetadataFilter | None = None,
 ) -> list[RetrievedChunk]:
-    """Fusion RRF entre vectoriel et BM25."""
+    """Fusion RRF entre vectoriel et BM25, avec le même filtre sur les deux jambes."""
     candidate_k = top_k * 3
-    vector_results = search_vector(query, candidate_k, settings, qdrant, openai_client)
-    bm25_results = search_bm25(query, candidate_k, settings, qdrant)
+    vector_results = search_vector(
+        query, candidate_k, settings, qdrant, openai_client, metadata_filter=metadata_filter
+    )
+    bm25_results = search_bm25(query, candidate_k, settings, qdrant, metadata_filter=metadata_filter)
     return reciprocal_rank_fusion([vector_results, bm25_results], top_k=top_k)
 
 
@@ -102,6 +112,7 @@ def search(
     settings: Settings | None = None,
     qdrant: QdrantClient | None = None,
     openai_client: OpenAI | None = None,
+    metadata_filter: MetadataFilter | None = None,
 ) -> list[RetrievedChunk]:
     """Recherche les chunks les plus pertinents (mode configurable)."""
     cfg = settings or get_settings()
@@ -117,13 +128,13 @@ def search(
         raise ValueError(msg)
 
     if retrieval_mode == "bm25":
-        results = search_bm25(query, k, cfg, client)
+        results = search_bm25(query, k, cfg, client, metadata_filter=metadata_filter)
     elif retrieval_mode == "hybrid":
         oai = openai_client or get_openai_client(cfg)
-        results = search_hybrid(query, k, cfg, client, oai)
+        results = search_hybrid(query, k, cfg, client, oai, metadata_filter=metadata_filter)
     else:
         oai = openai_client or get_openai_client(cfg)
-        results = search_vector(query, k, cfg, client, oai)
+        results = search_vector(query, k, cfg, client, oai, metadata_filter=metadata_filter)
 
     logger.info("%s chunks récupérés (mode=%s)", len(results), retrieval_mode)
     return results

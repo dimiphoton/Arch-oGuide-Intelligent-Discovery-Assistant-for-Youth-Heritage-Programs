@@ -38,6 +38,14 @@ SKIP_TITLES = {
 # Ligne « Commune (Département) » — ex. Ambérieu-en-Bugey (Ain)
 COMMUNE_LINE = re.compile(r"^.+\([^)]{2,60}\)$")
 
+# Statuts courts du PDF → phrases explicites pour le LLM et les embeddings
+STATUT_PHRASES = {
+    "ouvert": "campagne ouverte, des places peuvent être disponibles pour les bénévoles",
+    "complet": "COMPLET — toutes les places sont réservées, le chantier n'accepte plus de bénévoles",
+    "achevee": "CAMPAGNE ACHEVÉE — la campagne de fouille est terminée",
+    "annulee": "CAMPAGNE ANNULÉE — la campagne de fouille n'aura pas lieu",
+}
+
 
 @dataclass
 class TextChunk:
@@ -50,6 +58,13 @@ class TextChunk:
     source: str
     region: str = ""
     site_name: str = ""
+    commune: str = ""
+    departement: str = ""
+    periode: str = ""
+    statut: str = ""
+    dates: str = ""
+    places: str = ""
+    vss: str = ""
 
 
 def chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
@@ -181,6 +196,87 @@ def _find_chantier_spans(text: str) -> list[tuple[int, int, str, str]]:
     return spans
 
 
+def _detect_statut(block: str) -> str:
+    """Statut de la campagne : ouvert / complet / achevee / annulee."""
+    upper = block.upper()
+    if "CAMPAGNE ANNULÉE" in upper or "CAMPAGNE ANNULEE" in upper:
+        return "annulee"
+    if "CAMPAGNE ACHEVÉE" in upper or "CAMPAGNE ACHEVEE" in upper:
+        return "achevee"
+    if re.search(r"(?m)^COMPLET\s*$", block):
+        return "complet"
+    return "ouvert"
+
+
+def _normalize_vss(raw: str) -> str:
+    """Ramène la réponse VSS à « oui » / « non » / « en attente » si possible."""
+    lowered = raw.lower().strip()
+    if lowered.startswith("oui"):
+        return "oui"
+    if lowered.startswith("non"):
+        return "non"
+    if lowered.startswith("en attente"):
+        return "en attente"
+    return raw.strip()[:80]
+
+
+def extract_fiche_metadata(block: str, commune_line: str) -> dict:
+    """
+    Extrait les métadonnées structurées d'une fiche chantier.
+
+    Retourne : commune, departement, periode, statut, dates, places, vss.
+    """
+    # Le PDF coupe les phrases en pleine ligne → on aplatit pour les regex.
+    flat = re.sub(r"\s+", " ", block)
+
+    commune = commune_line.strip()
+    departement = ""
+    match = re.match(r"^(.+?)\s*\(([^)]+)\)$", commune)
+    if match:
+        commune = match.group(1).strip()
+        departement = match.group(2).strip()
+
+    periode_match = re.search(r"Période\s*:\s*([^.]+)", flat)
+    dates_match = re.search(r"Quand\s*\?\s*([^.]+)", flat)
+    places_match = re.search(r"Nombre de places\s*:\s*([^.]+)", flat)
+    vss_match = re.search(
+        r"violences sexistes et sexuelles sur le\s*chantier\s*:\s*([^;.]+)", flat
+    )
+
+    return {
+        "commune": commune,
+        "departement": departement,
+        "periode": periode_match.group(1).strip() if periode_match else "",
+        "statut": _detect_statut(block),
+        "dates": dates_match.group(1).strip() if dates_match else "",
+        "places": places_match.group(1).strip() if places_match else "",
+        "vss": _normalize_vss(vss_match.group(1)) if vss_match else "",
+    }
+
+
+def build_fiche_header(region: str, site_name: str, metadata: dict) -> str:
+    """
+    En-tête textuel normalisé, préfixé au texte vectorisé.
+
+    Rend explicites la géographie et le statut pour les embeddings et le LLM.
+    """
+    lines = [f"Chantier archéologique : {site_name}"]
+    if region:
+        lines.append(f"Région : {region}")
+    if metadata.get("commune"):
+        lines.append(f"Commune : {metadata['commune']}")
+    if metadata.get("departement"):
+        lines.append(f"Département : {metadata['departement']}")
+    if metadata.get("periode"):
+        lines.append(f"Période archéologique : {metadata['periode']}")
+    if metadata.get("dates"):
+        lines.append(f"Dates de la campagne : {metadata['dates']}")
+    lines.append(f"Statut de la campagne : {STATUT_PHRASES[metadata['statut']]}.")
+    if metadata.get("vss"):
+        lines.append(f"Dispositif de prévention des violences sexistes et sexuelles (VSS) : {metadata['vss']}.")
+    return "\n".join(lines)
+
+
 def split_into_chantiers(pages: list[PageText]) -> list[dict]:
     """Découpe le PDF en fiches chantier (1 chantier = 1 chunk)."""
     chantiers: list[dict] = []
@@ -229,14 +325,17 @@ def split_into_chantiers(pages: list[PageText]) -> list[dict]:
             if len(block) < 40:
                 continue
             region = region_at(start)
-            header = f"Région : {region}\n" if region else ""
+            # Le PDF marque les nouveautés par un préfixe « nouveau » collé au titre
+            site_name = re.sub(r"(?i)^nouveau\s+", "", title).strip()
+            metadata = extract_fiche_metadata(block, commune)
+            header = build_fiche_header(region, site_name, metadata)
             chantiers.append(
                 {
-                    "text": f"{header}{block}",
+                    "text": f"{header}\n---\n{block}",
                     "page_number": page.page_number,
                     "region": region,
-                    "site_name": title,
-                    "commune": commune,
+                    "site_name": site_name,
+                    **metadata,
                 }
             )
 
@@ -269,6 +368,13 @@ def build_chunks(
                     source=source,
                     region=region,
                     site_name=site,
+                    commune=chantier.get("commune", ""),
+                    departement=chantier.get("departement", ""),
+                    periode=chantier.get("periode", ""),
+                    statut=chantier.get("statut", ""),
+                    dates=chantier.get("dates", ""),
+                    places=chantier.get("places", ""),
+                    vss=chantier.get("vss", ""),
                 )
             )
             chunk_index += 1

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import Callable
 
 from rank_bm25 import BM25Okapi
 
@@ -23,16 +24,30 @@ class BM25Index:
         tokenized = [_tokenize(chunk.text) for chunk in chunks]
         self._bm25 = BM25Okapi(tokenized)
 
-    def search(self, query: str, top_k: int = 5) -> list[RetrievedChunk]:
-        """Retourne les top-k chunks par score BM25."""
+    def search(
+        self,
+        query: str,
+        top_k: int = 5,
+        predicate: Callable[[dict], bool] | None = None,
+    ) -> list[RetrievedChunk]:
+        """
+        Retourne les top-k chunks par score BM25.
+
+        predicate : filtre métadonnées appliqué sur le payload des chunks
+        (mêmes contraintes que le filtre Qdrant côté vectoriel).
+        """
         tokens = _tokenize(query)
         if not tokens:
             return []
 
         scores = self._bm25.get_scores(tokens)
-        # argsort décroissant
+        # argsort décroissant, en écartant les chunks refusés par le filtre
         ranked_indices = sorted(
-            range(len(scores)),
+            (
+                i
+                for i in range(len(scores))
+                if predicate is None or predicate(self.chunks[i].payload)
+            ),
             key=lambda i: scores[i],
             reverse=True,
         )[:top_k]

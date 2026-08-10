@@ -1,7 +1,30 @@
 """Tests unitaires du chunking (dont découpage par chantier)."""
 
-from ingest.chunk import build_chunks, chunk_text, split_into_chantiers
+from ingest.chunk import (
+    build_chunks,
+    chunk_text,
+    extract_fiche_metadata,
+    split_into_chantiers,
+)
 from ingest.extract import PageText
+
+FICHE_COMPLETE = (
+    "Les Malnaux\n"
+    "Toulon-sur-Allier (Allier)\n"
+    "Visiter le chantier de fouilles\n"
+    "Pas de visite.\n"
+    "Fouiller\n"
+    "Nombre de places : 10.\n"
+    "Quand ? du 10 au 22 août.\n"
+    "Période : Antiquité.\n"
+    "Nature du site : zone artisanale.\n"
+    "COMPLET\n"
+    "Responsables : Lucile Catté (Eveha).\n"
+    "Contact : lucile.catte@gmail.com\n"
+    "Existe-t-il un dispositif de prévention \n"
+    "des violences sexistes et sexuelles sur \n"
+    "le chantier : oui, signature de la charte.\n"
+)
 
 
 def test_chunk_text_respects_overlap() -> None:
@@ -55,6 +78,54 @@ def test_split_into_chantiers_detects_sites() -> None:
     assert chantiers[0]["site_name"] == "Château de Saint-Germain"
     assert chantiers[0]["region"] == "AUVERGNE-RHÔNE-ALPES"
     assert chantiers[1]["site_name"] == "Les Bravets"
+
+
+def test_extract_fiche_metadata() -> None:
+    metadata = extract_fiche_metadata(FICHE_COMPLETE, "Toulon-sur-Allier (Allier)")
+
+    assert metadata["commune"] == "Toulon-sur-Allier"
+    assert metadata["departement"] == "Allier"
+    assert metadata["periode"] == "Antiquité"
+    assert metadata["dates"] == "du 10 au 22 août"
+    assert metadata["places"] == "10"
+    assert metadata["statut"] == "complet"
+    assert metadata["vss"] == "oui"
+
+
+def test_extract_fiche_metadata_statuts() -> None:
+    assert extract_fiche_metadata("...\nCAMPAGNE ACHEVÉE\n...", "X (Y)")["statut"] == "achevee"
+    assert extract_fiche_metadata("...\nCAMPAGNE ANNULÉE\n...", "X (Y)")["statut"] == "annulee"
+    assert extract_fiche_metadata("fiche sans statut", "X (Y)")["statut"] == "ouvert"
+
+
+def test_split_enrichit_le_texte_et_les_metadonnees() -> None:
+    page = PageText(page_number=3, text=f"AUVERGNE-RHÔNE-ALPES\n{FICHE_COMPLETE}")
+    chantiers = split_into_chantiers([page])
+
+    assert len(chantiers) == 1
+    fiche = chantiers[0]
+    assert fiche["statut"] == "complet"
+    assert fiche["departement"] == "Allier"
+    # L'en-tête normalisé rend le statut explicite pour le LLM et les embeddings
+    assert "Statut de la campagne : COMPLET" in fiche["text"]
+    assert "Commune : Toulon-sur-Allier" in fiche["text"]
+
+
+def test_split_retire_le_prefixe_nouveau() -> None:
+    page = PageText(
+        page_number=8,
+        text=(
+            "nouveau  Sanctuaire du Pont des Arches\n"
+            "Villards-d'Héria (Jura)\n"
+            "Visiter le chantier de fouilles\n"
+            "Visite libre.\n"
+            "Fouiller\n"
+            "Nombre de places : 6.\n"
+        ),
+    )
+    chantiers = split_into_chantiers([page])
+    assert len(chantiers) == 1
+    assert chantiers[0]["site_name"] == "Sanctuaire du Pont des Arches"
 
 
 def test_split_handles_title_with_parentheses() -> None:
