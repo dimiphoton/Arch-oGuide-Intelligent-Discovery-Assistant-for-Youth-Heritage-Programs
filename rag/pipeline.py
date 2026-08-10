@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import re
 import time
 from dataclasses import dataclass, field
 
@@ -12,8 +11,10 @@ from rag.catalog import (
     catalog_to_chunks,
     detect_region,
     filter_catalog,
+    format_catalog_answer,
     format_catalog_summary,
     is_catalog_query,
+    is_count_query,
     load_chantier_catalog,
 )
 from rag.config import Settings, get_settings
@@ -38,9 +39,8 @@ class RagResponse:
     latency_ms: float = field(default=0.0)
 
 
-def _is_count_query(question: str) -> bool:
-    lowered = question.lower()
-    return bool(re.search(r"\bcombien\b|\bnombre\b|\bcombien y a\b", lowered))
+# Au-delà de ce nombre de fiches, on répond sans LLM pour garantir une liste complète.
+MAX_FICHES_POUR_LLM = 30
 
 
 def _answer_from_catalog(question: str, settings: Settings) -> tuple[str, list[RetrievedChunk]] | None:
@@ -56,43 +56,24 @@ def _answer_from_catalog(question: str, settings: Settings) -> tuple[str, list[R
     catalog = load_chantier_catalog(settings=settings)
     filtered = filter_catalog(catalog, region=region)
     chunks = catalog_to_chunks(filtered)
+
+    # Comptage, ou liste trop longue pour un LLM : réponse déterministe,
+    # construite depuis le catalogue → aucun chantier ne peut manquer.
+    if is_count_query(question) or len(filtered) > MAX_FICHES_POUR_LLM:
+        return format_catalog_answer(filtered, region=region), chunks
+
+    # Liste courte (ex. une région) : le LLM enrichit avec les détails des fiches.
     summary = format_catalog_summary(filtered, region=region)
-
-    if _is_count_query(question):
-        scope = f"en {region}" if region else "dans le document officiel"
-        answer = (
-            f"Le document officiel recense **{len(filtered)} chantier(s)** {scope}.\n\n"
-            f"{summary}"
-        )
-        return answer, chunks
-
-    # Liste : on donne le résumé + les fiches (tronquées si trop nombreuses)
-    max_full = 30
-    context_chunks = chunks[:max_full]
-    if len(chunks) > max_full:
-        # Injecte le résumé complet comme premier "chunk" synthétique
-        context_chunks = [
-            RetrievedChunk(
-                text=summary,
-                page_number=0,
-                score=1.0,
-                source="catalog",
-                chunk_id="catalog-summary",
-            ),
-            *context_chunks,
-        ]
-    else:
-        context_chunks = [
-            RetrievedChunk(
-                text=summary,
-                page_number=0,
-                score=1.0,
-                source="catalog",
-                chunk_id="catalog-summary",
-            ),
-            *chunks,
-        ]
-
+    context_chunks = [
+        RetrievedChunk(
+            text=summary,
+            page_number=0,
+            score=1.0,
+            source="catalog",
+            chunk_id="catalog-summary",
+        ),
+        *chunks,
+    ]
     answer = generate_answer(question, context_chunks, settings=settings)
     return answer, chunks
 

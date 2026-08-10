@@ -79,6 +79,49 @@ def detect_region(question: str) -> str | None:
     return None
 
 
+# Mots qui indiquent une question filtrée (âge, période, type…) → retrieval sémantique,
+# car le catalogue global ne sait pas répondre à ces critères.
+DETAIL_FILTERS = (
+    "mineur",
+    "moins de",
+    "scolaire",
+    "collégien",
+    "enfant",
+    "famille",
+    "bénévole",
+    "volontaire",
+    "préhistoire",
+    "romain",
+    "médiéval",
+    "antiquité",
+    "visite",
+    "juillet",
+    "août",
+    "été",
+    "contact",
+    "responsable",
+    "places",
+)
+
+# Détection d'un décompte : « combien », « nombre de/total », « nb de », « au total »
+COUNT_PATTERN = re.compile(r"\bcombien\b|\bnombre (de|total)\b|\bnb\b|\bau total\b")
+
+# Détection d'une liste exhaustive
+LIST_PATTERN = re.compile(
+    r"\bliste\b|\blister\b|\bénumèr\w*|\benumer\w*|\binventaire\b|\brecens\w*"
+    r"|\btou(?:s|tes) les (?:chantiers|sites|fouilles)\b"
+    r"|\bl[’']ensemble des (?:chantiers|sites|fouilles)\b"
+)
+
+# « Quels (sont les) chantiers… » — tolère jusqu'à 3 mots entre « quels » et le nom
+QUELS_PATTERN = re.compile(r"\bquel(?:le)?s?\b(?:\s+\w+){0,3}\s+(chantiers?|fouilles?|sites?)\b")
+
+
+def is_count_query(question: str) -> bool:
+    """True si la question demande un décompte (« Combien de chantiers ? »)."""
+    return bool(COUNT_PATTERN.search(question.lower()))
+
+
 def is_catalog_query(question: str) -> bool:
     """
     True si la question demande un décompte / une liste exhaustive.
@@ -88,39 +131,25 @@ def is_catalog_query(question: str) -> bool:
     """
     lowered = question.lower()
 
-    if re.search(r"\bcombien\b|\bnombre (de|total)\b", lowered):
+    # Un critère de détail rend le catalogue global inutilisable
+    # (ex. « Combien de chantiers acceptent des mineurs ? » ≠ total du document).
+    if any(word in lowered for word in DETAIL_FILTERS):
+        return False
+
+    if COUNT_PATTERN.search(lowered):
         return True
 
-    if re.search(r"\bliste\b|\blister\b|\btous les chantiers\b|\binventaire\b|\brecens\w*\b", lowered):
+    if LIST_PATTERN.search(lowered):
         return True
 
-    # « Quels chantiers en Bretagne ? » → catalogue filtré par région
-    # mais pas « Quels chantiers pour scolaires / mineurs / préhistoire ? »
-    if re.search(r"\bquels? chantiers?\b|\bquelles? fouilles?\b", lowered):
-        detail_filters = (
-            "mineur",
-            "moins de",
-            "scolaire",
-            "collégien",
-            "enfant",
-            "famille",
-            "bénévole",
-            "volontaire",
-            "préhistoire",
-            "romain",
-            "médiéval",
-            "antiquité",
-            "visite",
-            "juillet",
-            "août",
-            "été",
-            "contact",
-            "responsable",
-            "places",
-        )
-        if any(word in lowered for word in detail_filters):
-            return False
-        return detect_region(question) is not None or "france" in lowered
+    # « Quels sont les chantiers (en Bretagne) ? » → catalogue.
+    # Au singulier (« quel chantier me conseilles-tu ? »), on exige une région.
+    match = QUELS_PATTERN.search(lowered)
+    if match:
+        noun = match.group(1)
+        if noun.endswith("s"):
+            return True
+        return detect_region(question) is not None
 
     return False
 
@@ -165,8 +194,27 @@ def load_chantier_catalog(
         if offset is None:
             break
 
+    records = dedup_catalog(records)
     records.sort(key=lambda item: (item.region, item.site_name.lower()))
     return records
+
+
+def dedup_catalog(records: list[ChantierRecord]) -> list[ChantierRecord]:
+    """
+    Supprime les doublons d'une même fiche (page + nom de site).
+
+    Cas couverts : fiche découpée en plusieurs chunks, ou ré-ingestion
+    sans --recreate qui laisse d'anciens points dans la collection.
+    """
+    seen: set[tuple[int, str]] = set()
+    unique: list[ChantierRecord] = []
+    for record in records:
+        key = (record.page_number, record.site_name.lower())
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(record)
+    return unique
 
 
 def filter_catalog(
@@ -204,4 +252,26 @@ def format_catalog_summary(records: list[ChantierRecord], region: str | None = N
         lines.append(
             f"{index}. {item.site_name} — {item.region or 'région non précisée'} (p. {item.page_number})"
         )
+    return "\n".join(lines)
+
+
+def format_catalog_answer(records: list[ChantierRecord], region: str | None = None) -> str:
+    """
+    Réponse complète et déterministe (sans LLM), groupée par région.
+
+    Garantit que TOUS les chantiers sont listés, sans troncature possible.
+    """
+    scope = f" en {region}" if region else ""
+    lines = [f"Le document officiel recense **{len(records)} chantier(s)**{scope}.", ""]
+
+    current_region = None
+    numero = 0
+    for item in records:
+        if item.region != current_region:
+            if current_region is not None:
+                lines.append("")
+            current_region = item.region
+            lines.append(f"**{current_region or 'Région non précisée'}**")
+        numero += 1
+        lines.append(f"{numero}. {item.site_name} (p. {item.page_number})")
     return "\n".join(lines)
