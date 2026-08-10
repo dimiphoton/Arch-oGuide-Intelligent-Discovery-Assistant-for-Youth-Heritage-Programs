@@ -35,10 +35,10 @@ class Settings(BaseSettings):
     qdrant_url: str = Field(default="http://localhost:6333")
     qdrant_collection: str = Field(default="chantiers_archeo")
 
-    # Retrieval
-    chunk_size: int = Field(default=800)
+    # Retrieval — top_k élevé pour lister plusieurs chantiers
+    chunk_size: int = Field(default=2000)
     chunk_overlap: int = Field(default=100)
-    top_k: int = Field(default=5)
+    top_k: int = Field(default=20)
     retrieval_mode: str = Field(default="hybrid")  # vector | bm25 | hybrid
 
     # RAG avancé (branche rag-advanced)
