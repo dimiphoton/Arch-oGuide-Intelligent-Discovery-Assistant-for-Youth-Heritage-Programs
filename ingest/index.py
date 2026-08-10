@@ -68,6 +68,8 @@ def index_chunks(
                 "page_number": chunk.page_number,
                 "chunk_index": chunk.chunk_index,
                 "source": chunk.source,
+                "region": getattr(chunk, "region", "") or "",
+                "site_name": getattr(chunk, "site_name", "") or "",
             },
         )
         for chunk, vector in zip(chunks, vectors, strict=True)

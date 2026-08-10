@@ -10,6 +10,10 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+# Évite les crash Unicode sur console Windows (cp1252)
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 from rag.pipeline import ask
 
 
@@ -70,7 +74,7 @@ def main() -> int:
         print("--- Sources ---")
         for index, source in enumerate(response.sources, start=1):
             preview = source.text[:120].replace("\n", " ")
-            print(f"  [{index}] p.{source.page_number} (score={source.score:.3f}) — {preview}…")
+            print(f"  [{index}] p.{source.page_number} (score={source.score:.3f}) - {preview}...")
 
     return 0
 
