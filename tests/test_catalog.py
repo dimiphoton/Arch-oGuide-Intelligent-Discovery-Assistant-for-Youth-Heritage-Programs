@@ -5,8 +5,10 @@ from rag.catalog import (
     dedup_catalog,
     detect_region,
     format_catalog_answer,
+    format_catalog_table,
     is_catalog_query,
     is_count_query,
+    is_table_query,
 )
 
 
@@ -36,6 +38,16 @@ def test_is_catalog_query_quels() -> None:
     assert is_catalog_query("Quels sont les chantiers en France ?") is True
     assert is_catalog_query("Quels sont les chantiers ?") is True
     assert is_catalog_query("Quelles fouilles en Occitanie ?") is True
+
+
+def test_is_catalog_query_tableau() -> None:
+    assert is_catalog_query("Fais un tableau de tous les chantiers") is True
+    assert is_catalog_query("Peux-tu faire un tableau récapitulatif ?") is True
+    assert is_catalog_query("Mettre sous forme de tableau les chantiers") is True
+    assert is_catalog_query("Tableau des chantiers en Bretagne") is True
+    assert is_catalog_query("Crée un table avec les sites") is True
+    assert is_table_query("Peux-tu faire un tableau récapitulatif ?") is True
+    assert is_table_query("Liste tous les chantiers") is False
 
 
 def test_is_catalog_query_questions_filtrees() -> None:
@@ -85,3 +97,36 @@ def test_format_catalog_answer_liste_tout() -> None:
     assert "Palol" in answer
     assert "**BRETAGNE**" in answer
     assert "**OCCITANIE**" in answer
+
+
+def test_format_catalog_table_complet() -> None:
+    records = [
+        ChantierRecord(
+            site_name="Panner",
+            region="BRETAGNE",
+            page_number=12,
+            text="",
+            source="test.pdf",
+            chunk_id="1",
+            commune="Saint-Tugdual",
+            departement="Morbihan",
+            statut="ouvert",
+        ),
+        ChantierRecord(
+            site_name="Palol",
+            region="OCCITANIE",
+            page_number=42,
+            text="",
+            source="test.pdf",
+            chunk_id="2",
+            commune="Elne",
+            departement="Pyrénées-Orientales",
+            statut="complet",
+        ),
+    ]
+    table = format_catalog_table(records)
+    assert "2 chantier(s)" in table
+    assert "| # | Site | Région |" in table
+    assert "| 1 | Panner | BRETAGNE |" in table
+    assert "| 2 | Palol | OCCITANIE |" in table
+    assert table.count("| ") >= 2 + 2  # en-tête + 2 lignes de données

@@ -77,6 +77,8 @@ def index_chunks(
                 "dates": chunk.dates,
                 "places": chunk.places,
                 "vss": chunk.vss,
+                "lat": chunk.lat,
+                "lon": chunk.lon,
             },
         )
         for chunk, vector in zip(chunks, vectors, strict=True)

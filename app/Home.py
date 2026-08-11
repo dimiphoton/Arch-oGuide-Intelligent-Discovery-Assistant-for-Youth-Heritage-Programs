@@ -16,11 +16,11 @@ st.markdown(
     "(bénévoles, visites, programmes scolaires)."
 )
 
-st.info("Utilisez la barre latérale pour naviguer : **Chat** ou **Monitoring**.")
+st.info("Utilisez la barre latérale pour naviguer : **Chat**, **Carte** ou **Monitoring**.")
 
 st.markdown("""
 ### Démarrage rapide
 1. Vérifier que Qdrant tourne et que le PDF est ingéré
 2. Configurer `OPENAI_API_KEY` dans `.env`
-3. Ouvrir **Chat** dans le menu latéral
+3. Ouvrir **Chat** ou **Carte** dans le menu latéral
 """)
