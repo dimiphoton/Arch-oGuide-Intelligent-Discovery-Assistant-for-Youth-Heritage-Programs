@@ -1,4 +1,4 @@
-# Déploiement Render.com (bonus cloud)
+# Déploiement Render.com — stack tout-en-un (Streamlit + Qdrant embarqué)
 # Docs : https://render.com/docs/blueprint-spec
 
 services:
@@ -12,17 +12,7 @@ services:
       - key: OPENAI_API_KEY
         sync: false
       - key: QDRANT_URL
-        value: http://qdrant:6333
+        value: http://127.0.0.1:6333
       - key: PYTHONUNBUFFERED
         value: "1"
     healthCheckPath: /_stcore/health
-
-  - type: pserv
-    name: archoguide-qdrant
-    runtime: docker
-    image: qdrant/qdrant:v1.12.5
-    plan: free
-    disk:
-      name: qdrant-data
-      mountPath: /qdrant/storage
-      sizeGB: 1

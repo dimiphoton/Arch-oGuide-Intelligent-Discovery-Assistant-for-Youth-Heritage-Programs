@@ -5,6 +5,14 @@ Elle aide les **jeunes**, **familles** et **enseignants** à trouver des chantie
 
 ---
 
+## Démo en ligne
+
+**[→ Cliquez pour tester le chat](https://archoguide.onrender.com/Chat)**
+
+> Au premier lancement (ou après inactivité sur le plan gratuit), l'indexation peut prendre quelques minutes. Rechargez la page si le chat indique que la base n'est pas encore prête.
+
+---
+
 ## Problem Description
 
 ### Contexte
@@ -270,11 +278,13 @@ docker compose --profile ingest run --rm ingest
 
 ## Déploiement cloud (Render)
 
-Fichier `render.yaml` inclus pour déploiement sur [Render.com](https://render.com) :
-- Service web Streamlit (Dockerfile)
-- Service Qdrant managé
+Déploiement en **un seul service** (Streamlit + Qdrant embarqué) via `render.yaml` :
 
-Configurer `OPENAI_API_KEY` dans le dashboard Render après déploiement.
+1. Connecter le dépôt GitHub sur [Render.com](https://render.com) → **New Blueprint**
+2. Renseigner `OPENAI_API_KEY` dans le dashboard Render
+3. L'app sera accessible sur `https://archoguide.onrender.com`
+
+Au premier démarrage, le conteneur télécharge le PDF officiel et l'indexe automatiquement en arrière-plan.
 
 ---
 

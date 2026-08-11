@@ -7,11 +7,18 @@ from streamlit_folium import st_folium
 
 from monitoring.store import update_feedback
 from rag.config import get_settings
+from rag.index_status import is_index_ready
 from rag.map_utils import build_folium_map
 from rag.pipeline import ask
 
 st.set_page_config(page_title="Chat — ArchéoGuide", page_icon="💬", layout="wide")
 st.title("💬 Chat ArchéoGuide")
+
+if not is_index_ready():
+    st.warning(
+        "La base de connaissances est en cours de préparation. "
+        "Patientez quelques minutes puis rechargez la page."
+    )
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
