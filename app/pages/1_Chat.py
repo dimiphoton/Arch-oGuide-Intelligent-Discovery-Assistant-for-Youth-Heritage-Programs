@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import streamlit as st
+from streamlit_folium import st_folium
 
 from monitoring.store import update_feedback
 from rag.config import get_settings
+from rag.map_utils import build_folium_map
 from rag.pipeline import ask
 
 st.set_page_config(page_title="Chat — ArchéoGuide", page_icon="💬", layout="wide")
@@ -22,6 +24,10 @@ for message in st.session_state.messages:
                 for index, source in enumerate(message["sources"], start=1):
                     preview = source["text"][:200].replace("\n", " ")
                     st.caption(f"[{index}] p.{source['page']} — {preview}…")
+        if message.get("map_sites"):
+            with st.expander("🗺️ Carte des chantiers"):
+                fmap = build_folium_map(message["map_sites"])
+                st_folium(fmap, width=None, height=450, returned_objects=[])
 
 question = st.chat_input("Posez votre question sur les chantiers archéologiques…")
 
@@ -56,6 +62,12 @@ if question:
                         f"[{index}] p.{source['page']} (score={source['score']:.3f}) — {preview}…"
                     )
 
+        map_sites_data = response.map_sites
+        if map_sites_data:
+            with st.expander("🗺️ Carte des chantiers"):
+                fmap = build_folium_map(map_sites_data)
+                st_folium(fmap, width=None, height=450, returned_objects=[])
+
         if response.event_id:
             col1, col2 = st.columns(2)
             if col1.button("👍 Utile", key=f"up_{response.event_id}"):
@@ -68,5 +80,10 @@ if question:
         st.caption(f"Latence : {response.latency_ms:.0f} ms")
 
     st.session_state.messages.append(
-        {"role": "assistant", "content": response.answer, "sources": sources_data}
+        {
+            "role": "assistant",
+            "content": response.answer,
+            "sources": sources_data,
+            "map_sites": map_sites_data if map_sites_data else None,
+        }
     )

@@ -35,6 +35,10 @@ def run_ingest_pipeline(
     chunks = build_chunks(pages, source, cfg.chunk_size, cfg.chunk_overlap)
     logger.info("%s chunks créés", len(chunks))
 
+    from ingest.geocode import enrich_chunks_with_coords
+
+    enrich_chunks_with_coords(chunks)
+
     result = {
         "pdf_path": str(path),
         "pages": len(pages),

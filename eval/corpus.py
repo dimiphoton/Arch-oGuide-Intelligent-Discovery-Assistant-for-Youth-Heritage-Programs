@@ -56,7 +56,7 @@ def load_corpus(
                     text=text,
                     page_number=int(payload.get("page_number", 0)),
                     source=str(payload.get("source", "")),
-                    payload=dict(payload),
+                    payload={**dict(payload), "chunk_id": str(point.id)},
                 )
             )
         if offset is None:

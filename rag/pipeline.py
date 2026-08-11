@@ -20,8 +20,9 @@ from rag.catalog import (
     load_chantier_catalog,
 )
 from rag.config import Settings, get_settings
-from rag.filters import build_metadata_filter
+from rag.filters import MetadataFilter, build_metadata_filter
 from rag.generate import generate_answer
+from rag.geo import MapSite, is_map_query, records_to_map_sites
 from rag.query_rewrite import rewrite_query
 from rag.rerank import rerank_chunks
 from rag.retrieval import search
@@ -40,13 +41,36 @@ class RagResponse:
     rewritten_query: str | None = field(default=None)
     event_id: str | None = field(default=None)
     latency_ms: float = field(default=0.0)
+    map_sites: list[MapSite] = field(default_factory=list)
 
 
 # Au-delà de ce nombre de fiches, on répond sans LLM pour garantir une liste complète.
 MAX_FICHES_POUR_LLM = 30
 
 
-def _answer_from_catalog(question: str, settings: Settings) -> tuple[str, list[RetrievedChunk]] | None:
+def _map_sites_from_catalog(
+    question: str,
+    settings: Settings,
+    metadata_filter: MetadataFilter | None = None,
+) -> list[MapSite]:
+    """Charge les sites cartographiables selon les filtres géographiques."""
+    region = detect_region(question)
+    catalog = load_chantier_catalog(settings=settings)
+    filtered = filter_catalog(
+        catalog,
+        region=region,
+        commune=metadata_filter.commune if metadata_filter else None,
+        departement=metadata_filter.departement if metadata_filter else None,
+        metadata_filter=metadata_filter,
+    )
+    return records_to_map_sites(filtered)
+
+
+def _answer_from_catalog(
+    question: str,
+    settings: Settings,
+    metadata_filter: MetadataFilter | None = None,
+) -> tuple[str, list[RetrievedChunk]] | None:
     """
     Répond via le catalogue complet (pas top_k) pour les questions liste/comptage.
 
@@ -57,17 +81,20 @@ def _answer_from_catalog(question: str, settings: Settings) -> tuple[str, list[R
 
     region = detect_region(question)
     catalog = load_chantier_catalog(settings=settings)
-    filtered = filter_catalog(catalog, region=region)
+    filtered = filter_catalog(
+        catalog,
+        region=region,
+        commune=metadata_filter.commune if metadata_filter else None,
+        departement=metadata_filter.departement if metadata_filter else None,
+        metadata_filter=metadata_filter,
+    )
     chunks = catalog_to_chunks(filtered)
 
-    # Tableau, comptage, ou liste trop longue : réponse déterministe sans LLM
-    # → aucun chantier ne peut manquer (le top_k=20 ne s'applique jamais ici).
     if is_table_query(question):
         return format_catalog_table(filtered, region=region), chunks
     if is_count_query(question) or len(filtered) > MAX_FICHES_POUR_LLM:
         return format_catalog_answer(filtered, region=region), chunks
 
-    # Liste courte (ex. une région) : le LLM enrichit avec les détails des fiches.
     summary = format_catalog_summary(filtered, region=region)
     context_chunks = [
         RetrievedChunk(
@@ -99,8 +126,10 @@ def ask(
 
     start = time.perf_counter()
     rewritten: str | None = None
+    metadata_filter = build_metadata_filter(question)
+    wants_map = is_map_query(question)
 
-    catalog_result = _answer_from_catalog(question, cfg)
+    catalog_result = _answer_from_catalog(question, cfg, metadata_filter=metadata_filter)
     if catalog_result is not None:
         answer, chunks = catalog_result
         search_query = question
@@ -108,9 +137,6 @@ def ask(
         search_query = rewrite_query(question, settings=cfg) if do_rewrite else question
         rewritten = search_query if do_rewrite else None
         candidate_k = k * 3 if do_rerank else k
-        # Filtres métadonnées (région, disponibilité) déduits de la question
-        # originale et appliqués en amont de la recherche vectorielle + BM25.
-        metadata_filter = build_metadata_filter(question)
         chunks = search(search_query, top_k=candidate_k, settings=cfg, metadata_filter=metadata_filter)
 
         if do_rerank and chunks:
@@ -119,6 +145,20 @@ def ask(
             chunks = chunks[:k]
 
         answer = generate_answer(question, chunks, settings=cfg)
+
+    map_sites: list[MapSite] = []
+    if wants_map:
+        map_sites = _map_sites_from_catalog(question, cfg, metadata_filter=metadata_filter)
+        if map_sites:
+            answer += (
+                f"\n\n🗺️ **{len(map_sites)} chantier(s)** géolocalisé(s) — "
+                "consultez la carte dans l'onglet **Carte** ou ci-dessous."
+            )
+        else:
+            answer += (
+                "\n\n🗺️ Aucun chantier géolocalisé pour cette zone. "
+                "Relancez l'ingestion (`python scripts/run_ingest.py`) pour enrichir les coordonnées GPS."
+            )
 
     latency_ms = (time.perf_counter() - start) * 1000
 
@@ -133,4 +173,5 @@ def ask(
         rewritten_query=rewritten,
         event_id=event_id,
         latency_ms=latency_ms,
+        map_sites=map_sites,
     )

@@ -60,6 +60,8 @@ class ChantierRecord:
     commune: str = ""
     departement: str = ""
     statut: str = ""
+    lat: float | None = None
+    lon: float | None = None
 
 
 def _strip_accents(value: str) -> str:
@@ -215,6 +217,8 @@ def load_chantier_catalog(
                     commune=str(payload.get("commune", "")),
                     departement=str(payload.get("departement", "")),
                     statut=str(payload.get("statut", "")),
+                    lat=float(payload["lat"]) if payload.get("lat") is not None else None,
+                    lon=float(payload["lon"]) if payload.get("lon") is not None else None,
                 )
             )
         if offset is None:
@@ -246,11 +250,43 @@ def dedup_catalog(records: list[ChantierRecord]) -> list[ChantierRecord]:
 def filter_catalog(
     records: list[ChantierRecord],
     region: str | None = None,
+    commune: str | None = None,
+    departement: str | None = None,
+    metadata_filter=None,
 ) -> list[ChantierRecord]:
-    """Filtre le catalogue par région si demandé."""
-    if not region:
-        return records
-    return [item for item in records if item.region == region]
+    """Filtre le catalogue par région, commune, département ou contrainte géographique."""
+    filtered = records
+    if region:
+        filtered = [item for item in filtered if item.region == region]
+    if commune:
+        from rag.geo import normalize_geo_label
+
+        commune_norm = normalize_geo_label(commune)
+        filtered = [item for item in filtered if normalize_geo_label(item.commune) == commune_norm]
+    if departement:
+        from rag.geo import normalize_geo_label
+
+        dept_norm = normalize_geo_label(departement)
+        filtered = [
+            item for item in filtered if normalize_geo_label(item.departement) == dept_norm
+        ]
+    if metadata_filter is not None and metadata_filter.geo_center_lat is not None:
+        filtered = [
+            item
+            for item in filtered
+            if metadata_filter.accepts(
+                {
+                    "lat": item.lat,
+                    "lon": item.lon,
+                    "region": item.region,
+                    "commune": item.commune,
+                    "departement": item.departement,
+                    "statut": item.statut,
+                    "chunk_id": item.chunk_id,
+                }
+            )
+        ]
+    return filtered
 
 
 def catalog_to_chunks(records: list[ChantierRecord]) -> list[RetrievedChunk]:

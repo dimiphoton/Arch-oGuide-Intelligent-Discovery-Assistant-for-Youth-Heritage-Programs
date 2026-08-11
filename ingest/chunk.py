@@ -65,6 +65,8 @@ class TextChunk:
     dates: str = ""
     places: str = ""
     vss: str = ""
+    lat: float | None = None
+    lon: float | None = None
 
 
 def chunk_text(text: str, chunk_size: int, chunk_overlap: int) -> list[str]:
@@ -375,6 +377,8 @@ def build_chunks(
                     dates=chantier.get("dates", ""),
                     places=chantier.get("places", ""),
                     vss=chantier.get("vss", ""),
+                    lat=chantier.get("lat"),
+                    lon=chantier.get("lon"),
                 )
             )
             chunk_index += 1

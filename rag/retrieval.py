@@ -127,6 +127,15 @@ def search(
         )
         raise ValueError(msg)
 
+    # Rayon géographique actif mais aucun chantier dans la zone
+    if (
+        metadata_filter is not None
+        and metadata_filter.geo_center_lat is not None
+        and not metadata_filter.allowed_chunk_ids
+    ):
+        logger.info("0 chunks (aucun chantier dans le rayon géographique)")
+        return []
+
     if retrieval_mode == "bm25":
         results = search_bm25(query, k, cfg, client, metadata_filter=metadata_filter)
     elif retrieval_mode == "hybrid":

@@ -15,13 +15,27 @@ def test_filtre_disponibilite() -> None:
 
 
 def test_filtre_region() -> None:
-    f = build_metadata_filter("Je veux participer à une fouille en Bretagne")
+    f = build_metadata_filter("Je veux participer à une fouille en Bretagne", load_vocab=False)
     assert f.region == "BRETAGNE"
     assert f.only_open is True
 
-    f = build_metadata_filter("Parle-moi du chantier Grotte Mandrin")
+    f = build_metadata_filter("Parle-moi du chantier Grotte Mandrin", load_vocab=False)
     assert f.region is None
     assert f.is_empty() is True
+
+
+def test_filtre_commune() -> None:
+    communes = ["Elne", "Carcassonne"]
+    from rag.geo import detect_commune
+
+    assert detect_commune("Chantiers à Carcassonne", communes) == "Carcassonne"
+
+
+def test_filtre_departement() -> None:
+    departements = ["Morbihan", "Aude"]
+    from rag.geo import detect_departement
+
+    assert detect_departement("Fouilles dans le Morbihan", departements) == "Morbihan"
 
 
 def test_accepts_applique_les_deux_criteres() -> None:
