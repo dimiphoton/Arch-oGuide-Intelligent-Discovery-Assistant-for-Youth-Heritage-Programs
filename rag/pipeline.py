@@ -13,8 +13,10 @@ from rag.catalog import (
     filter_catalog,
     format_catalog_answer,
     format_catalog_summary,
+    format_catalog_table,
     is_catalog_query,
     is_count_query,
+    is_table_query,
     load_chantier_catalog,
 )
 from rag.config import Settings, get_settings
@@ -58,8 +60,10 @@ def _answer_from_catalog(question: str, settings: Settings) -> tuple[str, list[R
     filtered = filter_catalog(catalog, region=region)
     chunks = catalog_to_chunks(filtered)
 
-    # Comptage, ou liste trop longue pour un LLM : réponse déterministe,
-    # construite depuis le catalogue → aucun chantier ne peut manquer.
+    # Tableau, comptage, ou liste trop longue : réponse déterministe sans LLM
+    # → aucun chantier ne peut manquer (le top_k=20 ne s'applique jamais ici).
+    if is_table_query(question):
+        return format_catalog_table(filtered, region=region), chunks
     if is_count_query(question) or len(filtered) > MAX_FICHES_POUR_LLM:
         return format_catalog_answer(filtered, region=region), chunks
 

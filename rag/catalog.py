@@ -58,6 +58,7 @@ class ChantierRecord:
     source: str
     chunk_id: str
     commune: str = ""
+    departement: str = ""
     statut: str = ""
 
 
@@ -115,8 +116,25 @@ LIST_PATTERN = re.compile(
     r"|\bl[’']ensemble des (?:chantiers|sites|fouilles)\b"
 )
 
+# Tableau récapitulatif (souvent formulé sans « liste » ni « tous les »)
+TABLE_PATTERN = re.compile(
+    r"\btableau\b|\btable\b|\btabulaire\b|\bsous forme de tableau\b|\bformat tableau\b"
+)
+
 # « Quels (sont les) chantiers… » — tolère jusqu'à 3 mots entre « quels » et le nom
 QUELS_PATTERN = re.compile(r"\bquel(?:le)?s?\b(?:\s+\w+){0,3}\s+(chantiers?|fouilles?|sites?)\b")
+
+STATUT_LABELS = {
+    "ouvert": "Ouvert",
+    "complet": "Complet",
+    "achevee": "Campagne achevée",
+    "annulee": "Campagne annulée",
+}
+
+
+def is_table_query(question: str) -> bool:
+    """True si la question demande un tableau (markdown) plutôt qu'une liste libre."""
+    return bool(TABLE_PATTERN.search(question.lower()))
 
 
 def is_count_query(question: str) -> bool:
@@ -142,6 +160,9 @@ def is_catalog_query(question: str) -> bool:
         return True
 
     if LIST_PATTERN.search(lowered):
+        return True
+
+    if TABLE_PATTERN.search(lowered):
         return True
 
     # « Quels sont les chantiers (en Bretagne) ? » → catalogue.
@@ -192,6 +213,7 @@ def load_chantier_catalog(
                     source=str(payload.get("source", "")),
                     chunk_id=str(point.id),
                     commune=str(payload.get("commune", "")),
+                    departement=str(payload.get("departement", "")),
                     statut=str(payload.get("statut", "")),
                 )
             )
@@ -285,4 +307,37 @@ def format_catalog_answer(records: list[ChantierRecord], region: str | None = No
         commune = f", {item.commune}" if item.commune else ""
         statut = statut_labels.get(item.statut, "")
         lines.append(f"{numero}. {item.site_name}{commune} (p. {item.page_number}){statut}")
+    return "\n".join(lines)
+
+
+def _escape_table_cell(value: str) -> str:
+    """Échappe les caractères spéciaux markdown dans une cellule de tableau."""
+    return value.replace("|", "\\|").replace("\n", " ")
+
+
+def format_catalog_table(records: list[ChantierRecord], region: str | None = None) -> str:
+    """
+    Tableau markdown complet, construit sans LLM.
+
+    Garantit les 81 lignes (ou toutes les fiches filtrées) — pas de troncature.
+    """
+    scope = f" en {region}" if region else ""
+    lines = [
+        f"Le document officiel recense **{len(records)} chantier(s)**{scope}.",
+        "",
+        "| # | Site | Région | Commune | Département | Statut | Page |",
+        "|---:|---|---|---|---|---|---:|",
+    ]
+    for index, item in enumerate(records, start=1):
+        statut = STATUT_LABELS.get(item.statut, item.statut or "—")
+        lines.append(
+            "| "
+            f"{index} | "
+            f"{_escape_table_cell(item.site_name)} | "
+            f"{_escape_table_cell(item.region or '—')} | "
+            f"{_escape_table_cell(item.commune or '—')} | "
+            f"{_escape_table_cell(item.departement or '—')} | "
+            f"{statut} | "
+            f"{item.page_number} |"
+        )
     return "\n".join(lines)
