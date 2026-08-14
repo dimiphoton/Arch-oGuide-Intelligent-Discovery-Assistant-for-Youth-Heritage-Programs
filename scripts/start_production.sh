@@ -7,9 +7,11 @@ QDRANT_STORAGE="${QDRANT_STORAGE:-/app/data/qdrant_storage}"
 mkdir -p "$QDRANT_STORAGE" data/pdfs
 
 export QDRANT_URL="${QDRANT_URL:-http://127.0.0.1:6333}"
+# Qdrant n'accepte pas --storage-path en CLI : le chemin se règle via env.
+export QDRANT__STORAGE__STORAGE_PATH="$QDRANT_STORAGE"
 
 echo ">> Démarrage Qdrant…"
-qdrant --storage-path "$QDRANT_STORAGE" &
+qdrant &
 QDRANT_PID=$!
 
 python - <<'PY'
