@@ -142,6 +142,11 @@ def needs_download(
     if force:
         return True
 
+    # metadata.json peut être présent sans le PDF (ex. déploiement Docker / Render).
+    latest_path = PDF_DIR / LATEST_PDF_NAME
+    if not latest_path.is_file():
+        return True
+
     if not metadata:
         return True
 

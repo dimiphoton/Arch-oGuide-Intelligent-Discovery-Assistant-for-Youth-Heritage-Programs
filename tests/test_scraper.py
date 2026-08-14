@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from scrapping.config import LATEST_PDF_NAME
 from scrapping.scraper import needs_download, parse_page
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "culture_page.html"
@@ -30,7 +31,25 @@ def test_needs_download_when_pub_date_changes(page_html: str) -> None:
     assert needs_download(page_info, metadata, pdf_headers=None) is True
 
 
-def test_needs_download_skips_when_unchanged(page_html: str) -> None:
+def test_needs_download_when_local_pdf_missing(page_html: str) -> None:
+    page_info = parse_page(page_html)
+    metadata = {
+        "pub_date_iso": page_info["pub_date_iso"],
+        "pdf_url": page_info["pdf_url"],
+    }
+
+    assert needs_download(page_info, metadata, pdf_headers=None) is True
+
+
+def test_needs_download_skips_when_unchanged(page_html: str, tmp_path: Path, monkeypatch) -> None:
+    pdf_dir = tmp_path / "pdfs"
+    pdf_dir.mkdir()
+    (pdf_dir / LATEST_PDF_NAME).write_bytes(b"fake-pdf")
+
+    import scrapping.scraper as scraper_module
+
+    monkeypatch.setattr(scraper_module, "PDF_DIR", pdf_dir)
+
     page_info = parse_page(page_html)
     metadata = {
         "pub_date_iso": page_info["pub_date_iso"],
