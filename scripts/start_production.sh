@@ -33,8 +33,10 @@ else:
     sys.exit(1)
 PY
 
-echo ">> Indexation en arrière-plan (si nécessaire)…"
-python scripts/ensure_indexed.py >> /tmp/ingest.log 2>&1 &
+echo ">> Indexation (si nécessaire)…"
+if ! python scripts/ensure_indexed.py; then
+  echo "WARN: indexation échouée — Streamlit démarre quand même (réessai au prochain redémarrage)." >&2
+fi
 
 PORT="${PORT:-8501}"
 echo ">> Démarrage Streamlit sur le port ${PORT}…"

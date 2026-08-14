@@ -9,6 +9,7 @@ from rag.catalog import detect_region, filter_catalog, load_chantier_catalog
 from rag.config import get_settings
 from rag.filters import build_metadata_filter
 from rag.geo import records_to_map_sites
+from rag.index_status import is_index_ready
 from rag.map_utils import STATUT_LABELS, build_folium_map
 
 st.set_page_config(page_title="Carte — ArchéoGuide", page_icon="🗺️", layout="wide")
@@ -19,10 +20,17 @@ st.markdown(
     "Les coordonnées proviennent de la [Base Adresse Nationale](https://adresse.data.gouv.fr/)."
 )
 
+if not is_index_ready():
+    st.warning(
+        "La base de connaissances est en cours de préparation. "
+        "Patientez quelques minutes puis rechargez la page."
+    )
+    st.stop()
+
 try:
     catalog = load_chantier_catalog(settings=get_settings())
 except ValueError as exc:
-    st.error(str(exc))
+    st.error(f"Impossible de charger la carte : {exc}")
     st.stop()
 
 # Filtres latéraux
@@ -61,8 +69,8 @@ col3.metric("Sans coordonnées", total - geolocated)
 
 if total - geolocated > 0:
     st.caption(
-        f"{total - geolocated} chantier(s) sans coordonnées GPS — "
-        "relancez `python scripts/run_ingest.py` pour les enrichir."
+        f"{total - geolocated} chantier(s) sans coordonnées GPS "
+        "(géocodage BAN indisponible ou commune non reconnue)."
     )
 
 fmap = build_folium_map(sites)

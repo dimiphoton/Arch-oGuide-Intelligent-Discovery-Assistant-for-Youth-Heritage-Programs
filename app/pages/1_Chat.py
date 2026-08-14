@@ -14,7 +14,8 @@ from rag.pipeline import ask
 st.set_page_config(page_title="Chat — ArchéoGuide", page_icon="💬", layout="wide")
 st.title("💬 Chat ArchéoGuide")
 
-if not is_index_ready():
+index_ready = is_index_ready()
+if not index_ready:
     st.warning(
         "La base de connaissances est en cours de préparation. "
         "Patientez quelques minutes puis rechargez la page."
@@ -39,6 +40,10 @@ for message in st.session_state.messages:
 question = st.chat_input("Posez votre question sur les chantiers archéologiques…")
 
 if question:
+    if not index_ready:
+        st.info("Indexation en cours — réessayez dans quelques instants.")
+        st.stop()
+
     st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("user"):
         st.markdown(question)

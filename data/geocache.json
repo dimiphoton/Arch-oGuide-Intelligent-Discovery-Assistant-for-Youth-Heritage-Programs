@@ -1,0 +1,358 @@
+{
+  "livron-sur-drome|drome": {
+    "lat": 44.790946,
+    "lon": 4.826348
+  },
+  "cazaux-debat|hautes-pyrenees": {
+    "lat": 42.888436,
+    "lon": 0.383698
+  },
+  "dolus-d’oleron|charente-maritime": {
+    "lat": 45.907504,
+    "lon": -1.266928
+  },
+  "sainte-christie-d’armagnac|gers": {
+    "lat": 43.799008,
+    "lon": -0.000717
+  },
+  "chateaubleau|seine-et-marne": {
+    "lat": 48.587828,
+    "lon": 3.107832
+  },
+  "serra-di-ferro|corse-du-sud": {
+    "lat": 41.732143,
+    "lon": 8.825071
+  },
+  "toutencourt|somme": {
+    "lat": 50.039092,
+    "lon": 2.460461
+  },
+  "bouteville|charente": {
+    "lat": 45.610467,
+    "lon": -0.116042
+  },
+  "biguglia|haute-corse": {
+    "lat": 42.612385,
+    "lon": 9.45385
+  },
+  "fontainebleau|seine-et-marne": {
+    "lat": 48.40781,
+    "lon": 2.70278
+  },
+  "saint-sylvestre|haute-vienne": {
+    "lat": 48.907304,
+    "lon": 0.605249
+  },
+  "le vieil-evreux|eure": {
+    "lat": 49.005715,
+    "lon": 1.216058
+  },
+  "monieux|vaucluse": {
+    "lat": 44.056957,
+    "lon": 5.338372
+  },
+  "correns|var": {
+    "lat": 43.487022,
+    "lon": 6.080147
+  },
+  "vieux-vy-sur-couesnon|ille-et-vilaine": {
+    "lat": 48.344672,
+    "lon": -1.489319
+  },
+  "saint-bonnet-le-courreau|loire": {
+    "lat": 45.659055,
+    "lon": 3.943401
+  },
+  "montfarville|manche": {
+    "lat": 49.654655,
+    "lon": -1.25845
+  },
+  "mont-saint-jean|sarthe": {
+    "lat": 48.248317,
+    "lon": -0.105725
+  },
+  "vendeuil-caply|oise": {
+    "lat": 49.611846,
+    "lon": 2.290084
+  },
+  "boves|somme": {
+    "lat": 49.849782,
+    "lon": 2.376974
+  },
+  "sainte-marie-aux-mines|haut-rhin": {
+    "lat": 48.227414,
+    "lon": 7.169401
+  },
+  "ouistreham|calvados": {
+    "lat": 49.274465,
+    "lon": -0.260058
+  },
+  "les avenieres-veyrins-thuellin|isere": {
+    "lat": 45.636064,
+    "lon": 5.555891
+  },
+  "la souterraine|creuse": {
+    "lat": 46.234618,
+    "lon": 1.467659
+  },
+  "brive-la-gaillarde|correze": {
+    "lat": 45.148038,
+    "lon": 1.517353
+  },
+  "ardiege et labarthe-riviere|haute-garonne": {
+    "lat": 43.0647,
+    "lon": 0.6424
+  },
+  "la tour-blanche-cercles|dordogne": {
+    "lat": 45.364866,
+    "lon": 0.460576
+  },
+  "mutzig|bas-rhin": {
+    "lat": 48.536102,
+    "lon": 7.459405
+  },
+  "viomenil|vosges": {
+    "lat": 48.092891,
+    "lon": 6.177398
+  },
+  "hyeres|var": {
+    "lat": 43.116731,
+    "lon": 6.20255
+  },
+  "montpellier|herault": {
+    "lat": 43.610476,
+    "lon": 3.87048
+  },
+  "saint-marcel-d’ardeche|ardeche": {
+    "lat": 44.327636,
+    "lon": 4.615046
+  },
+  "saint-martin-d’ardeche|ardeche": {
+    "lat": 44.307292,
+    "lon": 4.572324
+  },
+  "vouthon|charente": {
+    "lat": 48.476348,
+    "lon": 5.617535
+  },
+  "aventignan|hautes-pyrenees": {
+    "lat": 43.06536,
+    "lon": 0.521653
+  },
+  "illfurth|haut-rhin": {
+    "lat": 47.674269,
+    "lon": 7.26284
+  },
+  "vert-toulon|marne": {
+    "lat": 48.841207,
+    "lon": 3.903931
+  },
+  "allemagne-en-provence|alpes-de-haute-provence": {
+    "lat": 43.790076,
+    "lon": 6.020921
+  },
+  "dehlingen|bas-rhin": {
+    "lat": 48.986323,
+    "lon": 7.19099
+  },
+  "astaffort|lot-et-garonne": {
+    "lat": 44.060675,
+    "lon": 0.647905
+  },
+  "montignac-lascaux|dordogne": {
+    "lat": 45.066211,
+    "lon": 1.163513
+  },
+  "loubens|ariege": {
+    "lat": 44.625419,
+    "lon": -0.027736
+  },
+  "la feuillee|finistere": {
+    "lat": 48.391029,
+    "lon": -3.851483
+  },
+  "grand|vosges": {
+    "lat": 48.3843,
+    "lon": 5.485548
+  },
+  "marcoussis|essonne": {
+    "lat": 48.647928,
+    "lon": 2.218524
+  },
+  "gorges|manche": {
+    "lat": 47.106444,
+    "lon": -1.317155
+  },
+  "villards-d’heria|jura": {
+    "lat": 46.408393,
+    "lon": 5.73402
+  },
+  "bussiere-galant|haute-vienne": {
+    "lat": 45.609342,
+    "lon": 1.053484
+  },
+  "toulon-sur-allier|allier": {
+    "lat": 46.519568,
+    "lon": 3.356768
+  },
+  "le cloitre-saint-thegonnec et berrien|finistere": {
+    "lat": 48.4571,
+    "lon": -3.792
+  },
+  "vialas|lozere": {
+    "lat": 44.328927,
+    "lon": 3.906405
+  },
+  "montferrand|aude": {
+    "lat": 43.364802,
+    "lon": 1.832329
+  },
+  "cabrespine|aude": {
+    "lat": 43.373813,
+    "lon": 2.462759
+  },
+  "mesmont|cote-d’or": {
+    "lat": 47.31292,
+    "lon": 4.746242
+  },
+  "louvres|val d’oise": {
+    "lat": 49.047348,
+    "lon": 2.503928
+  },
+  "fanjeaux|aude": {
+    "lat": 43.188678,
+    "lon": 2.035308
+  },
+  "saint-tugdual|morbihan": {
+    "lat": 48.098224,
+    "lon": -3.373665
+  },
+  "sanguinet|landes": {
+    "lat": 44.488851,
+    "lon": -1.062642
+  },
+  "creuzier-le-vieux|allier": {
+    "lat": 46.159232,
+    "lon": 3.438078
+  },
+  "malataverne|drome": {
+    "lat": 44.478354,
+    "lon": 4.749897
+  },
+  "blanquefort-sur-briolance|lot-et-garonne": {
+    "lat": 44.610958,
+    "lon": 0.964021
+  },
+  "wolschwiller|haut-rhin": {
+    "lat": 47.461394,
+    "lon": 7.407478
+  },
+  "meailles|alpes-de-haute-provence": {
+    "lat": 44.0432,
+    "lon": 6.6475
+  },
+  "dolus-d'oleron|charente-maritime": {
+    "lat": 45.9069,
+    "lon": -1.2583
+  },
+  "sainte-christie-d'armagnac|gers": {
+    "lat": 43.7944,
+    "lon": -0.0048
+  },
+  "amberieu-en-bugey|ain": {
+    "lat": 45.9575,
+    "lon": 5.3706
+  },
+  "bidon|ardeche": {
+    "lat": 44.3583,
+    "lon": 4.5423
+  },
+  "mancey|saone-et-loire": {
+    "lat": 46.5704,
+    "lon": 4.8443
+  },
+  "montrozier|aveyron": {
+    "lat": 44.3859,
+    "lon": 2.7088
+  },
+  "cambia|haute-corse": {
+    "lat": 42.367,
+    "lon": 9.303
+  },
+  "ardiege|haute-garonne": {
+    "lat": 43.0647,
+    "lon": 0.6424
+  },
+  "chinon|indre-et-loire": {
+    "lat": 47.1692,
+    "lon": 0.2433
+  },
+  "lisle|loir-et-cher": {
+    "lat": 47.8702,
+    "lon": 1.1078
+  },
+  "blain|loire-atlantique": {
+    "lat": 47.4562,
+    "lon": -1.7817
+  },
+  "saint-marcel-d'ardeche|ardeche": {
+    "lat": 44.3301,
+    "lon": 4.6007
+  },
+  "saint-martin-d'ardeche|ardeche": {
+    "lat": 44.3073,
+    "lon": 4.5722
+  },
+  "tavera|corse-du-sud": {
+    "lat": 42.0729,
+    "lon": 9.0296
+  },
+  "elne|pyrenees-orientales": {
+    "lat": 42.6083,
+    "lon": 2.978
+  },
+  "culhat|puy-de-dome": {
+    "lat": 45.8605,
+    "lon": 3.3393
+  },
+  "jablines|seine-et-marne": {
+    "lat": 48.9157,
+    "lon": 2.7606
+  },
+  "marignac|haute-garonne": {
+    "lat": 42.893,
+    "lon": 0.6649
+  },
+  "villards-d'heria|jura": {
+    "lat": 46.4046,
+    "lon": 5.7394
+  },
+  "le cloitre-saint-thegonnec|finistere": {
+    "lat": 48.4571,
+    "lon": -3.792
+  },
+  "mesmont|cote-d'or": {
+    "lat": 47.3118,
+    "lon": 4.7429
+  },
+  "aleria|haute-corse": {
+    "lat": 42.0993,
+    "lon": 9.4972
+  },
+  "louvres|val d'oise": {
+    "lat": 49.0444,
+    "lon": 2.5011
+  },
+  "poilhes|herault": {
+    "lat": 43.304,
+    "lon": 3.0915
+  },
+  "regismont-le-haut|herault": {
+    "lat": 43.304,
+    "lon": 3.0915
+  },
+  "estenos|haute-garonne": {
+    "lat": 42.9431,
+    "lon": 0.6323
+  }
+}

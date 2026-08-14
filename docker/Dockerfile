@@ -22,6 +22,9 @@ RUN pip install --no-cache-dir \
 
 COPY . .
 
+# PDF absent du dépôt (.gitignore) : on le récupère au build pour éviter un échec au runtime.
+RUN mkdir -p data/pdfs && python scripts/run_scraper.py -v
+
 RUN chmod +x scripts/start_production.sh
 
 EXPOSE 8501
