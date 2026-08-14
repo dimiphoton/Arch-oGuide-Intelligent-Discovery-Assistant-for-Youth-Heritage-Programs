@@ -14,24 +14,7 @@ echo ">> Démarrage Qdrant…"
 qdrant &
 QDRANT_PID=$!
 
-python - <<'PY'
-import sys
-import time
-
-from qdrant_client import QdrantClient
-
-url = "http://127.0.0.1:6333"
-for attempt in range(60):
-    try:
-        QdrantClient(url=url).get_collections()
-        print(f"Qdrant prêt ({url})")
-        break
-    except Exception:
-        time.sleep(1)
-else:
-    print("Qdrant n'a pas démarré à temps", file=sys.stderr)
-    sys.exit(1)
-PY
+python scripts/wait_qdrant.py
 
 echo ">> Indexation (si nécessaire)…"
 if ! python scripts/ensure_indexed.py; then

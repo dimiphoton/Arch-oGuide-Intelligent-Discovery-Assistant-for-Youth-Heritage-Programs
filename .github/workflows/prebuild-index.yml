@@ -1,0 +1,66 @@
+name: Prebuild index snapshot
+
+on:
+  schedule:
+    # Chaque lundi 05:00 UTC — régénère le snapshot si le PDF a changé
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+  push:
+    paths:
+      - "data/metadata.json"
+      - "data/geocache.json"
+      - "ingest/**"
+      - "rag/config.py"
+      - "scripts/build_index_snapshot.py"
+      - "scripts/ensure_indexed.py"
+
+permissions:
+  contents: write
+
+jobs:
+  prebuild:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Qdrant
+        run: |
+          QDRANT_VERSION=1.12.5
+          curl -fsSL "https://github.com/qdrant/qdrant/releases/download/v${QDRANT_VERSION}/qdrant-x86_64-unknown-linux-gnu.tar.gz" \
+            | tar -xz -C /usr/local/bin qdrant
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-ingest.txt -r requirements-scraping.txt
+
+      - name: Download PDF
+        run: python scripts/run_scraper.py -v
+
+      - name: Build snapshot
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          QDRANT_URL: http://127.0.0.1:6333
+          QDRANT__STORAGE__STORAGE_PATH: /tmp/qdrant_storage
+        run: |
+          mkdir -p /tmp/qdrant_storage
+          qdrant &
+          python scripts/build_index_snapshot.py
+
+      - name: Commit snapshot if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/index_snapshot.json.gz data/index_snapshot_meta.json
+          if git diff --staged --quiet; then
+            echo "Snapshot inchangé, pas de commit."
+          else
+            git commit -m "chore(index): régénérer le snapshot Qdrant pré-calculé"
+            git push
+          fi

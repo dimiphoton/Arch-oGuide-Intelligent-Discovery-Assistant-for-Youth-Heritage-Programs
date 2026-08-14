@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT))
 
 from ingest.index import get_qdrant_client
 from ingest.pipeline import run_ingest_pipeline
+from ingest.snapshot import import_snapshot, snapshot_exists
 from rag.config import get_settings
 from scrapping.scraper import run_scrape
 
@@ -49,8 +50,17 @@ def ensure_indexed() -> int:
         logger.info("Collection déjà indexée (%s points)", count)
         return count
 
+    if snapshot_exists():
+        logger.info("Restauration du snapshot pré-calculé (sans OpenAI)…")
+        try:
+            imported = import_snapshot(settings=get_settings())
+            if imported > 0:
+                return imported
+        except Exception as exc:
+            logger.warning("Snapshot illisible, indexation complète : %s", exc)
+
     ensure_pdf_present()
-    logger.info("Indexation en cours (première visite ou base vide)…")
+    logger.info("Indexation complète en cours (OpenAI + Qdrant)…")
     result = run_ingest_pipeline(settings=get_settings())
     return int(result.get("indexed", 0))
 

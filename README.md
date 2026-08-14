@@ -286,6 +286,8 @@ Déploiement en **un seul service** (Streamlit + Qdrant embarqué) via `render.y
 
 Au premier démarrage, le conteneur télécharge le PDF officiel et l'indexe automatiquement en arrière-plan.
 
+**Accélération Render :** un snapshot pré-calculé (`data/index_snapshot.json.gz`) est restauré au démarrage sans rappeler OpenAI (~10 s au lieu de plusieurs minutes). Il est régénéré par le workflow GitHub [Prebuild index snapshot](.github/workflows/prebuild-index.yml) — ajouter `OPENAI_API_KEY` dans les secrets du dépôt, puis lancer le workflow manuellement une fois.
+
 ---
 
 ## Scraping
