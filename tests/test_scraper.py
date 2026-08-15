@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from scrapping.config import LATEST_PDF_NAME
-from scrapping.scraper import needs_download, parse_page
+from scrapping.scraper import _ensure_latest_pdf, needs_download, parse_page
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "culture_page.html"
 
@@ -75,3 +75,15 @@ def test_needs_download_force_bypasses_checks(page_html: str) -> None:
     }
 
     assert needs_download(page_info, metadata, pdf_headers=None, force=True) is True
+
+
+def test_ensure_latest_pdf_copies_from_archive(tmp_path: Path) -> None:
+    pdf_dir = tmp_path / "pdfs"
+    pdf_dir.mkdir()
+    archive = pdf_dir / "liste_chantiers_2026-08-13.pdf"
+    archive.write_bytes(b"fake-pdf-content")
+    latest = pdf_dir / LATEST_PDF_NAME
+
+    assert _ensure_latest_pdf(archive, latest, {}) is True
+    assert latest.read_bytes() == b"fake-pdf-content"
+    assert archive.is_file()

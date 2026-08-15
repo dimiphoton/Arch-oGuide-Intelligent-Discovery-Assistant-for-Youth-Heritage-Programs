@@ -195,6 +195,36 @@ def _archive_path(pub_date_iso: str) -> Path:
     return PDF_DIR / f"liste_chantiers_{pub_date_iso}.pdf"
 
 
+def _ensure_latest_pdf(
+    archive_path: Path,
+    latest_path: Path,
+    metadata: dict[str, Any],
+) -> bool:
+    """
+    Garantit que liste_chantiers_latest.pdf existe.
+
+    Utile en CI/Docker où metadata.json est versionné mais pas le PDF.
+    Retourne True si latest_path existe après l'appel.
+    """
+    if latest_path.is_file():
+        return True
+
+    if archive_path.is_file():
+        shutil.copy2(archive_path, latest_path)
+        logger.info("Copie vers %s", latest_path)
+        return True
+
+    local_path = metadata.get("local_path")
+    if local_path:
+        candidate = PROJECT_ROOT / local_path
+        if candidate.is_file():
+            shutil.copy2(candidate, latest_path)
+            logger.info("Restauré %s depuis metadata (%s)", latest_path, candidate.name)
+            return True
+
+    return False
+
+
 def run_scrape(force: bool = False, dry_run: bool = False) -> dict[str, Any]:
     """
     Orchestration complète du scrape.
@@ -238,8 +268,14 @@ def run_scrape(force: bool = False, dry_run: bool = False) -> dict[str, Any]:
     # Niveau 3 : déduplication par hash.
     if file_hash == metadata.get("sha256"):
         logger.info("Hash identique au fichier précédent — doublon supprimé.")
+        _ensure_latest_pdf(archive_path, latest_path, metadata)
         archive_path.unlink(missing_ok=True)
-        return {"status": "skipped", "reason": "same_hash", "page_info": page_info}
+        return {
+            "status": "skipped",
+            "reason": "same_hash",
+            "page_info": page_info,
+            "local_path": str(latest_path) if latest_path.is_file() else None,
+        }
 
     shutil.copy2(archive_path, latest_path)
 

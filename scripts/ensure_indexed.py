@@ -38,9 +38,12 @@ def ensure_pdf_present() -> None:
     logger.info("PDF absent — lancement du scraper…")
     settings.pdf_path.parent.mkdir(parents=True, exist_ok=True)
     result = run_scrape(force=True)
-    if result.get("status") != "downloaded" and not settings.pdf_path.exists():
-        msg = "Impossible de récupérer le PDF officiel (scraper sans fichier local)."
-        raise FileNotFoundError(msg)
+    if settings.pdf_path.exists():
+        return
+    if result.get("local_path") and Path(result["local_path"]).is_file():
+        return
+    msg = "Impossible de récupérer le PDF officiel (scraper sans fichier local)."
+    raise FileNotFoundError(msg)
 
 
 def ensure_indexed() -> int:
