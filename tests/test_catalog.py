@@ -4,8 +4,10 @@ from rag.catalog import (
     ChantierRecord,
     dedup_catalog,
     detect_region,
+    detect_statut_filter,
     format_catalog_answer,
     format_catalog_table,
+    is_availability_question,
     is_catalog_query,
     is_count_query,
     is_table_query,
@@ -56,6 +58,20 @@ def test_is_catalog_query_questions_filtrees() -> None:
     assert is_catalog_query("Quel est le contact du chantier Mandrin ?") is False
     assert is_catalog_query("Combien de chantiers acceptent des mineurs ?") is False
     assert is_catalog_query("Liste des chantiers pour les enfants") is False
+    # Disponibilité actuelle → RAG (pas dump des 81 fiches).
+    assert is_catalog_query("Quels chantiers sont encore ouverts aux inscriptions ?") is False
+    assert is_catalog_query("Quels chantiers ouverts en Bretagne ?") is False
+    assert is_availability_question("Y a-t-il au moins un chantier ouvert en Bretagne ?") is True
+    # Comptage filtré par statut → catalogue déterministe.
+    assert is_catalog_query("Combien de chantiers ouverts en Bretagne ?") is True
+    assert detect_statut_filter("Combien de chantiers complets ?") == "complet"
+
+
+def test_format_catalog_answer_empty_open() -> None:
+    answer = format_catalog_answer([], region="BRETAGNE", statut="ouvert")
+    assert "Aucun chantier" in answer
+    assert "ouvert" in answer.lower()
+    assert "BRETAGNE" in answer
 
 
 def test_is_count_query() -> None:

@@ -84,8 +84,8 @@ def detect_region(question: str) -> str | None:
     return None
 
 
-# Mots qui indiquent une question filtrée (âge, période, type…) → retrieval sémantique,
-# car le catalogue global ne sait pas répondre à ces critères.
+# Mots qui indiquent une question filtrée (âge, période, statut…) → retrieval sémantique,
+# car le catalogue global ne sait pas répondre seul à ces critères.
 DETAIL_FILTERS = (
     "mineur",
     "moins de",
@@ -106,7 +106,32 @@ DETAIL_FILTERS = (
     "contact",
     "responsable",
     "places",
+    "encore",
+    "actuellement",
+    "maintenant",
 )
+
+# Indices de disponibilité actuelle → synthèse LLM plutôt que dump catalogue.
+AVAILABILITY_HINTS = (
+    "encore",
+    "actuellement",
+    "maintenant",
+    "en ce moment",
+    "à ce jour",
+    "y a-t-il",
+    "existe-t-il",
+    "peut-on encore",
+    "inscription",
+    "inscrire",
+)
+
+# Motifs de statut de campagne détectables dans la question.
+STATUT_PATTERNS: dict[str, tuple[str, ...]] = {
+    "ouvert": ("ouvert", "ouverte", "ouverts", "ouvertes", "disponible", "disponibles"),
+    "complet": ("complet", "complète", "complets", "complètes"),
+    "achevee": ("achevee", "achevée", "achevees", "achevées", "terminee", "terminée"),
+    "annulee": ("annulee", "annulée", "annulees", "annulées", "annule", "annulé"),
+}
 
 # Détection d'un décompte : « combien », « nombre de/total », « nb de », « au total »
 COUNT_PATTERN = re.compile(r"\bcombien\b|\bnombre (de|total)\b|\bnb\b|\bau total\b")
@@ -134,6 +159,33 @@ STATUT_LABELS = {
 }
 
 
+def detect_statut_filter(question: str) -> str | None:
+    """Détecte un filtre de statut de campagne (ouvert, complet, etc.)."""
+    lowered = _strip_accents(question.lower())
+    for statut, keywords in STATUT_PATTERNS.items():
+        if any(keyword in lowered for keyword in keywords):
+            return statut
+    return None
+
+
+def is_availability_question(question: str) -> bool:
+    """
+    True si la question porte sur la disponibilité actuelle.
+
+    Ex. « Quels chantiers sont encore ouverts ? » → RAG (synthèse), pas dump des 81 fiches.
+    Les comptages (« Combien de chantiers ouverts ? ») restent gérés par le catalogue filtré.
+    """
+    if detect_statut_filter(question) != "ouvert":
+        return False
+    if is_count_query(question):
+        return False
+    lowered = question.lower()
+    if any(hint in lowered for hint in AVAILABILITY_HINTS):
+        return True
+    # « Quels chantiers ouverts en Bretagne ? » nécessite une réponse ciblée, pas la liste totale.
+    return bool(QUELS_PATTERN.search(lowered))
+
+
 def is_table_query(question: str) -> bool:
     """True si la question demande un tableau (markdown) plutôt qu'une liste libre."""
     return bool(TABLE_PATTERN.search(question.lower()))
@@ -152,6 +204,10 @@ def is_catalog_query(question: str) -> bool:
     Les questions filtrées (âge, période, type) restent en retrieval sémantique.
     """
     lowered = question.lower()
+
+    # Disponibilité actuelle → LLM (réponse nuancée, refus honnête si tout est fermé).
+    if is_availability_question(question):
+        return False
 
     # Un critère de détail rend le catalogue global inutilisable
     # (ex. « Combien de chantiers acceptent des mineurs ? » ≠ total du document).
@@ -252,12 +308,15 @@ def filter_catalog(
     region: str | None = None,
     commune: str | None = None,
     departement: str | None = None,
+    statut: str | None = None,
     metadata_filter=None,
 ) -> list[ChantierRecord]:
-    """Filtre le catalogue par région, commune, département ou contrainte géographique."""
+    """Filtre le catalogue par région, commune, département, statut ou contrainte géographique."""
     filtered = records
     if region:
         filtered = [item for item in filtered if item.region == region]
+    if statut:
+        filtered = [item for item in filtered if item.statut == statut]
     if commune:
         from rag.geo import normalize_geo_label
 
@@ -317,13 +376,28 @@ def format_catalog_summary(records: list[ChantierRecord], region: str | None = N
     return "\n".join(lines)
 
 
-def format_catalog_answer(records: list[ChantierRecord], region: str | None = None) -> str:
+def format_catalog_answer(
+    records: list[ChantierRecord],
+    region: str | None = None,
+    statut: str | None = None,
+) -> str:
     """
     Réponse complète et déterministe (sans LLM), groupée par région.
 
-    Garantit que TOUS les chantiers sont listés, sans troncature possible.
+    Garantit que TOUS les chantiers filtrés sont listés, sans troncature possible.
     """
-    scope = f" en {region}" if region else ""
+    scope_parts: list[str] = []
+    if statut:
+        scope_parts.append(STATUT_LABELS.get(statut, statut).lower())
+    if region:
+        scope_parts.append(f"en {region}")
+    scope = f" {' '.join(scope_parts)}" if scope_parts else ""
+
+    if not records:
+        return (
+            f"Aucun chantier{scope} recensé dans le document officiel à la date de publication du PDF."
+        )
+
     lines = [f"Le document officiel recense **{len(records)} chantier(s)**{scope}.", ""]
 
     statut_labels = {
@@ -351,13 +425,28 @@ def _escape_table_cell(value: str) -> str:
     return value.replace("|", "\\|").replace("\n", " ")
 
 
-def format_catalog_table(records: list[ChantierRecord], region: str | None = None) -> str:
+def format_catalog_table(
+    records: list[ChantierRecord],
+    region: str | None = None,
+    statut: str | None = None,
+) -> str:
     """
     Tableau markdown complet, construit sans LLM.
 
-    Garantit les 81 lignes (ou toutes les fiches filtrées) — pas de troncature.
+    Garantit toutes les fiches filtrées — pas de troncature.
     """
-    scope = f" en {region}" if region else ""
+    scope_parts: list[str] = []
+    if statut:
+        scope_parts.append(STATUT_LABELS.get(statut, statut).lower())
+    if region:
+        scope_parts.append(f"en {region}")
+    scope = f" {' '.join(scope_parts)}" if scope_parts else ""
+
+    if not records:
+        return (
+            f"Aucun chantier{scope} recensé dans le document officiel à la date de publication du PDF."
+        )
+
     lines = [
         f"Le document officiel recense **{len(records)} chantier(s)**{scope}.",
         "",
