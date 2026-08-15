@@ -10,6 +10,7 @@ from monitoring.store import log_query
 from rag.catalog import (
     catalog_to_chunks,
     detect_region,
+    detect_statut_filter,
     filter_catalog,
     format_catalog_answer,
     format_catalog_summary,
@@ -80,10 +81,12 @@ def _answer_from_catalog(
         return None
 
     region = detect_region(question)
+    statut = detect_statut_filter(question)
     catalog = load_chantier_catalog(settings=settings)
     filtered = filter_catalog(
         catalog,
         region=region,
+        statut=statut,
         commune=metadata_filter.commune if metadata_filter else None,
         departement=metadata_filter.departement if metadata_filter else None,
         metadata_filter=metadata_filter,
@@ -91,9 +94,9 @@ def _answer_from_catalog(
     chunks = catalog_to_chunks(filtered)
 
     if is_table_query(question):
-        return format_catalog_table(filtered, region=region), chunks
+        return format_catalog_table(filtered, region=region, statut=statut), chunks
     if is_count_query(question) or len(filtered) > MAX_FICHES_POUR_LLM:
-        return format_catalog_answer(filtered, region=region), chunks
+        return format_catalog_answer(filtered, region=region, statut=statut), chunks
 
     summary = format_catalog_summary(filtered, region=region)
     context_chunks = [
