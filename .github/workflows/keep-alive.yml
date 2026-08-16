@@ -11,4 +11,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping health endpoint
-        run: curl -sf --max-time 30 https://archoguide.onrender.com/_stcore/health
+        run: |
+          URL="https://archoguide.onrender.com/_stcore/health"
+          # Render free : cold start ~30-90 s — timeout 30 s provoquait des faux échecs (curl exit 28).
+          if curl -sf --max-time 90 "$URL"; then
+            echo "Health OK"
+            exit 0
+          fi
+          echo "Première tentative expirée, nouvel essai dans 15 s..."
+          sleep 15
+          if curl -sf --max-time 90 "$URL"; then
+            echo "Health OK (2e tentative)"
+            exit 0
+          fi
+          # Même sans réponse health, le ping a servi à réveiller l'instance.
+          echo "::warning::Health non confirmé — cold start probable, ping de réveil envoyé."
+          exit 0
