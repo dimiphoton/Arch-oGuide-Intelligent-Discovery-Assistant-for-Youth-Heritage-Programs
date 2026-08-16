@@ -354,5 +354,9 @@
   "estenos|haute-garonne": {
     "lat": 42.9431,
     "lon": 0.6323
+  },
+  "lyon|": {
+    "lat": 45.758,
+    "lon": 4.8351
   }
 }

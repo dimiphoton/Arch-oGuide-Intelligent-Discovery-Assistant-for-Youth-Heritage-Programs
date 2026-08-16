@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     """Paramètres chargés depuis `.env` et l'environnement."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=PROJECT_ROOT / ".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )

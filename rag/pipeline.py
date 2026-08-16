@@ -17,6 +17,7 @@ from rag.catalog import (
     format_catalog_table,
     is_catalog_query,
     is_count_query,
+    is_list_query,
     is_table_query,
     load_chantier_catalog,
 )
@@ -95,7 +96,7 @@ def _answer_from_catalog(
 
     if is_table_query(question):
         return format_catalog_table(filtered, region=region, statut=statut), chunks
-    if is_count_query(question) or len(filtered) > MAX_FICHES_POUR_LLM:
+    if is_count_query(question) or is_list_query(question) or len(filtered) > MAX_FICHES_POUR_LLM:
         return format_catalog_answer(filtered, region=region, statut=statut), chunks
 
     summary = format_catalog_summary(filtered, region=region)
@@ -147,7 +148,17 @@ def ask(
         else:
             chunks = chunks[:k]
 
-        answer = generate_answer(question, chunks, settings=cfg)
+        if not chunks and metadata_filter.only_open:
+            region = detect_region(question)
+            scope = f" en {region}" if region else ""
+            answer = (
+                f"Aucun chantier ouvert{scope} recensé dans le document officiel "
+                "à la date de publication du PDF. "
+                "Les campagnes COMPLET, CAMPAGNE ACHEVÉE ou ANNULÉE n'acceptent plus "
+                "d'inscriptions."
+            )
+        else:
+            answer = generate_answer(question, chunks, settings=cfg)
 
     map_sites: list[MapSite] = []
     if wants_map:

@@ -196,6 +196,11 @@ def is_count_query(question: str) -> bool:
     return bool(COUNT_PATTERN.search(question.lower()))
 
 
+def is_list_query(question: str) -> bool:
+    """True si la question demande une liste exhaustive."""
+    return bool(LIST_PATTERN.search(question.lower()))
+
+
 def is_catalog_query(question: str) -> bool:
     """
     True si la question demande un décompte / une liste exhaustive.

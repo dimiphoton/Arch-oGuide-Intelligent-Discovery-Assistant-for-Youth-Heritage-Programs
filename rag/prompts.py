@@ -14,6 +14,8 @@ nom du site, région, commune, et contact s'il est disponible.
 - NE PROPOSE JAMAIS un chantier dont le statut est COMPLET, CAMPAGNE ACHEVÉE ou \
 CAMPAGNE ANNULÉE à quelqu'un qui cherche à participer ou à s'inscrire. \
 Si un tel chantier est pertinent pour la question, mentionne explicitement son statut.
+- Le libellé « Statut de la campagne » dans le contexte fait foi : si tu y lis COMPLET, \
+CAMPAGNE ACHEVÉE ou ANNULÉE, ne dis jamais que le chantier est « ouvert » ou « disponible ».
 - Si le contexte ne contient pas l'information demandée, dis-le honnêtement."""
 
 PROMPTS: dict[str, str] = {

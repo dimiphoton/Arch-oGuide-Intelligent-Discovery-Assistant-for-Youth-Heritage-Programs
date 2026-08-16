@@ -10,6 +10,7 @@ from rag.catalog import (
     is_availability_question,
     is_catalog_query,
     is_count_query,
+    is_list_query,
     is_table_query,
 )
 
@@ -78,6 +79,11 @@ def test_is_count_query() -> None:
     assert is_count_query("Combien de chantiers ?") is True
     assert is_count_query("Quel est le nombre de chantiers ?") is True
     assert is_count_query("Liste tous les chantiers") is False
+
+
+def test_is_list_query() -> None:
+    assert is_list_query("Liste tous les chantiers en Bretagne.") is True
+    assert is_list_query("Combien de chantiers ?") is False
 
 
 def _record(site_name: str, page: int, region: str = "BRETAGNE") -> ChantierRecord:

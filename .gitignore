@@ -9,6 +9,7 @@ data/logs/*.jsonl
 __pycache__/
 *.pyc
 .venv/
+archoguide-env/
 venv/
 .pytest_cache/
 .ruff_cache/

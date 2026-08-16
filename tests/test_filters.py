@@ -10,6 +10,15 @@ def test_filtre_disponibilite() -> None:
     f = build_metadata_filter("Y a-t-il encore des places disponibles ?")
     assert f.only_open is True
 
+    f = build_metadata_filter(
+        "Quels chantiers sont encore ouverts aux inscriptions en ce moment ?",
+        load_vocab=False,
+    )
+    assert f.only_open is True
+
+    f = build_metadata_filter("Quelle est la différence entre COMPLET et CAMPAGNE ACHEVÉE ?")
+    assert f.only_open is False
+
     f = build_metadata_filter("Quelle est la période du chantier des Malnaux ?")
     assert f.only_open is False
 

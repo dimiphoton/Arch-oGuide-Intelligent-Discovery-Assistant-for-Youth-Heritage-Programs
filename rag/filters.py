@@ -22,9 +22,14 @@ from rag.geo import (
 # → on exclut les chantiers complets, achevés ou annulés dès la recherche.
 AVAILABILITY_PATTERN = re.compile(
     r"places? (?:encore )?disponibles?|encore des places?|reste(?:-t-il|nt)? des places?"
-    r"|[sm][’']inscrire|inscrire|inscription|participer|rejoindre|postuler|candidat"
+    r"|[sm][’']inscrire|inscrire|inscriptions?|participer|rejoindre|postuler|candidat"
     r"|peut-on (?:encore )?fouiller|devenir bénévole|être bénévole"
+    r"|\bouverts?\b|\bdisponibles?\b|encore ouvert|en ce moment|actuellement"
+    r"|à ce jour|maintenant"
 )
+
+# Questions explicatives sur le vocabulaire (pas une recherche de place).
+STATUT_EXPLAIN_PATTERN = re.compile(r"\bdiff[ée]rence\b|\bdistinguer\b|\bsignifie\b|\bvoulez.?dire\b")
 
 
 @dataclass
@@ -119,6 +124,14 @@ def _build_radius_chunk_ids(
     return ids
 
 
+def _wants_open_only(question: str) -> bool:
+    """True si la question cherche des chantiers encore ouverts aux inscriptions."""
+    lowered = question.lower()
+    if STATUT_EXPLAIN_PATTERN.search(lowered):
+        return False
+    return bool(AVAILABILITY_PATTERN.search(lowered))
+
+
 def build_metadata_filter(question: str, *, load_vocab: bool = True) -> MetadataFilter:
     """Déduit les filtres métadonnées de la question utilisateur."""
     communes: list[str] = []
@@ -149,7 +162,7 @@ def build_metadata_filter(question: str, *, load_vocab: bool = True) -> Metadata
         region=region,
         commune=commune,
         departement=departement,
-        only_open=bool(AVAILABILITY_PATTERN.search(question.lower())),
+        only_open=_wants_open_only(question),
         geo_center_lat=geo_center_lat,
         geo_center_lon=geo_center_lon,
         geo_radius_km=geo_radius_km,
