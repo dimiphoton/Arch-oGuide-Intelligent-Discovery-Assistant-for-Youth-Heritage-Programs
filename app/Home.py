@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
 import streamlit as st
 
 from rag.index_status import indexed_point_count, is_index_ready
+
+CTA_IMAGE = Path(__file__).resolve().parent.parent / "docs" / "images" / "cta-try-chat.png"
 
 st.set_page_config(
     page_title="ArchéoGuide",
@@ -21,10 +24,12 @@ st.markdown(
 )
 
 # Lien direct vers le chat (page Streamlit multipage)
+if CTA_IMAGE.is_file():
+    st.image(str(CTA_IMAGE), use_container_width=True)
+
 st.page_link(
     "pages/1_Chat.py",
-    label="Cliquez pour tester le chat",
-    icon="💬",
+    label="💬 Cliquez pour tester le chat  ·  Click to try the chat",
     use_container_width=True,
 )
 

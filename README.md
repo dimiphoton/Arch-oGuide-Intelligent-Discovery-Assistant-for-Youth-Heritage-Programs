@@ -6,11 +6,15 @@ Application RAG pour le **LLM Zoomcamp**. Elle aide les **jeunes**, **familles**
 
 ---
 
-## Démo en ligne
+## Démo en ligne / Live demo
 
-**[→ Cliquez pour tester le chat](https://archoguide.onrender.com/Chat)**
+[![Cliquez pour tester le chat — Click to try the chat](docs/images/cta-try-chat.png)](https://archoguide.onrender.com/Chat)
+
+**[🇫🇷 Cliquez pour tester le chat](https://archoguide.onrender.com/Chat)** · **[🇬🇧 Click to try the chat](https://archoguide.onrender.com/Chat)**
 
 > Au premier lancement (ou après inactivité sur le plan gratuit), l'indexation peut prendre quelques minutes. Rechargez la page si le chat indique que la base n'est pas encore prête.
+>
+> On first load (or after idle time on the free plan), indexing can take a few minutes. Reload if the chat says the knowledge base is not ready.
 
 | Page | Contenu |
 |---|---|
